@@ -1,0 +1,52 @@
+<resources>
+    <string name="app_name">Upstream</string>
+
+    <!-- Strings used for main -->
+    <string name="action_settings">Settings</string>
+
+    <string name="switch_camera_source">Switch camera</string>
+    <string name="mute_audio_source">Mute/unmute microphone</string>
+    <string name="upstream">Upstream!</string>
+    <string name="stop">Stop</string>
+    <string name="endpoint">API endpoint</string>
+    <string name="error">Error</string>
+    <string name="authentication_failed">Authentication failed</string>
+    <string name="disconnection">You have been disconnected</string>
+
+    <!-- Strings used for preferences -->
+    <string name="video">Video</string>
+    <string name="video_resolution_key">video_resolution_key</string>
+    <string name="video_resolution">Resolution</string>
+    <string name="video_fps_key">video_fps_key</string>
+    <string name="video_fps">Framerate</string>
+    <string name="video_bitrate_key">video_bitrate_key</string>
+    <string name="bitrate">Bitrate (in Kbps)</string>
+
+    <string name="audio">Audio</string>
+    <string name="audio_number_of_channels_key">audio_number_of_channel_key</string>
+    <string name="audio_number_of_channels">Number of channels</string>
+    <string name="audio_bitrate_key">audio_bitrate_key</string>
+    <string name="audio_sample_rate_key">audio_sample_rate_key</string>
+    <string name="audio_sample_rate">Sample rate</string>
+    <string name="audio_enable_echo_canceler">Enable echo canceler</string>
+    <string name="audio_enable_echo_canceler_key">audio_enable_echo_canceler_key</string>
+    <string name="audio_enable_noise_suppressor_key">audio_enable_noise_suppressor_key</string>
+    <string name="audio_enable_noise_suppressor">Enable noise suppressor</string>
+    <string name="permissions">Permissions</string>
+    <string name="permission_not_granted">Permissions not granted: leaving!</string>
+    <string name="api_endpoint_type_key">api_endpoint_type_key</string>
+    <string name="api_endpoint_type">Upload with</string>
+    <string name="api_endpoint_api_key">API key</string>
+    <string name="api_endpoint_upload_token">Upload token</string>
+    <string name="api_endpoint_environment_sandbox">Sandbox</string>
+    <string name="api_endpoint_environment_production">Production</string>
+    <string name="api_endpoint_environment_key">api_endpoint_environment_key</string>
+    <string name="api_endpoint_environment">Environment</string>
+    <string name="api_endpoint_api_key_default">YOUR_API_KEY</string>
+    <string name="api_endpoint_api_key_key">api_endpoint_api_key_key</string>
+    <string name="api_endpoint_video_id_default">YOUR_VIDEO_ID</string>
+    <string name="api_endpoint_video_id_key">api_endpoint_video_id_key</string>
+    <string name="api_endpoint_video_id">Video ID</string>
+    <string name="api_endpoint_upload_token_default">YOUR_UPLOAD_TOKEN</string>
+    <string name="api_endpoint_upload_token_key">api_endpoint_upload_token_key</string>
+</resources>
