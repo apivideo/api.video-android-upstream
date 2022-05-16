@@ -14,6 +14,7 @@ import io.github.thibaultbee.streampack.utils.isBackCamera
 import io.github.thibaultbee.streampack.utils.isFrontCamera
 import io.github.thibaultbee.streampack.views.getPreviewOutputSize
 import video.api.uploader.VideosApi
+import video.api.uploader.api.ApiClient
 import video.api.uploader.api.models.Environment
 import video.api.uploader.api.upload.IProgressiveUploadSession
 import video.api.upstream.enums.CameraFacingDirection
@@ -27,13 +28,13 @@ import java.util.concurrent.Executors
 class ApiVideoUpstream
 /**
  * @param context The application context
- * @param chunkSize The chunk size in bytes (minimum is 5242880 bytes)
+ * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
  */
 @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
 private constructor(
     private val context: Context,
     private val videosApi: VideosApi,
-    private val chunkSize: Long,
+    private val partSize: Long,
     initialAudioConfig: AudioConfig?,
     initialVideoConfig: VideoConfig?,
     initialCamera: CameraFacingDirection,
@@ -44,7 +45,7 @@ private constructor(
     constructor(
         context: Context,
         environment: Environment = Environment.PRODUCTION,
-        chunkSize: Long = 5242880,
+        chunkSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
         initialAudioConfig: AudioConfig? = null,
         initialVideoConfig: VideoConfig? = null,
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
@@ -66,7 +67,7 @@ private constructor(
         context: Context,
         apiKey: String,
         environment: Environment = Environment.PRODUCTION,
-        chunkSize: Long = 5242880,
+        chunkSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
         initialAudioConfig: AudioConfig? = null,
         initialVideoConfig: VideoConfig? = null,
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
@@ -141,7 +142,7 @@ private constructor(
                 streamer.outputStream =
                     ChunkedFileOutputStream(
                         "${context.filesDir}/$it",
-                        chunkSize,
+                        partSize,
                         onChunkListener
                     )
                 progressiveSession = videosApi.createUploadWithUploadTokenProgressiveSession(it)
@@ -159,7 +160,7 @@ private constructor(
                 streamer.outputStream =
                     ChunkedFileOutputStream(
                         "${context.filesDir}/$it",
-                        chunkSize,
+                        partSize,
                         onChunkListener
                     )
                 progressiveSession = videosApi.createUploadProgressiveSession(it)
@@ -334,6 +335,12 @@ private constructor(
     }
 
     init {
+        require(partSize >= ApiClient.MIN_CHUNK_SIZE) {
+            "Part size must be greater than ${ApiClient.MIN_CHUNK_SIZE}"
+        }
+        require(partSize <= ApiClient.MAX_CHUNK_SIZE) {
+            "Part size must be less than or equal to ${ApiClient.MAX_CHUNK_SIZE}"
+        }
         apiVideoView.holder.addCallback(surfaceCallback)
         audioConfig?.let {
             streamer.configure(it.toSdkConfig())
