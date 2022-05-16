@@ -11,6 +11,55 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <RelativeLayout
+        android:id="@+id/progressLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/partProgress"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/circle_shape" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_alignStart="@id/partProgress"
+            android:layout_alignTop="@id/partProgress"
+            android:layout_alignEnd="@id/partProgress"
+            android:layout_alignBottom="@id/partProgress"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/currentPart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:text="@string/default_part"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:text="@string/separator" />
+
+            <TextView
+                android:id="@+id/totalNumOfParts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:text="@string/default_part"/>
+        </LinearLayout>
+
+
+    </RelativeLayout>
+
     <LinearLayout
         android:id="@+id/controlLayout"
         android:layout_width="wrap_content"
@@ -26,6 +75,8 @@
             android:layout_height="wrap_content"
             android:background="@drawable/circle_shape"
             android:contentDescription="@string/switch_camera_source"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
             android:padding="2dp"
             android:src="@drawable/ic_baseline_switch_camera_24" />
 
@@ -35,6 +86,8 @@
             android:layout_height="wrap_content"
             android:background="@drawable/circle_shape"
             android:contentDescription="@string/mute_audio_source"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
             android:padding="2dp"
             android:src="@drawable/ic_baseline_mic_off_24" />
 

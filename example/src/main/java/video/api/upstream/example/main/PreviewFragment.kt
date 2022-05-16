@@ -51,19 +51,37 @@ class PreviewFragment : Fragment() {
             viewModel.switchCamera()
         }
 
-
         binding.muteButton.setOnClickListener {
             viewModel.toggleMute()
         }
 
-        viewModel.onError.observe(viewLifecycleOwner) {
+        viewModel.error.observe(viewLifecycleOwner) {
             binding.liveButton.isChecked = false
             manageError(getString(R.string.error), it)
         }
 
-        viewModel.onDisconnect.observe(viewLifecycleOwner) {
-            binding.liveButton.isChecked = false
-            showDisconnection()
+        viewModel.message.observe(viewLifecycleOwner) {
+            showToast(it)
+        }
+
+        viewModel.currentPartId.observe(viewLifecycleOwner) {
+            binding.currentPart.text = "$it"
+        }
+
+        viewModel.totalNumOfParts.observe(viewLifecycleOwner) {
+            binding.totalNumOfParts.text = "$it"
+        }
+
+        viewModel.currentPartProgress.observe(viewLifecycleOwner) {
+            binding.partProgress.progress = (it * 100).toInt()
+        }
+
+        viewModel.showProgress.observe(viewLifecycleOwner) {
+            binding.progressLayout.visibility = if (it) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         }
     }
 
@@ -73,8 +91,8 @@ class PreviewFragment : Fragment() {
         DialogHelper.showAlertDialog(requireContext(), title, message)
     }
 
-    private fun showDisconnection() {
-        Toast.makeText(requireContext(), getString(R.string.disconnection), Toast.LENGTH_SHORT)
+    private fun showToast(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT)
             .show()
     }
 }

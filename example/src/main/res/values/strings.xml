@@ -49,4 +49,6 @@
     <string name="api_endpoint_video_id">Video ID</string>
     <string name="api_endpoint_upload_token_default">YOUR_UPLOAD_TOKEN</string>
     <string name="api_endpoint_upload_token_key">api_endpoint_upload_token_key</string>
+    <string name="separator">/</string>
+    <string name="default_part">0</string>
 </resources>

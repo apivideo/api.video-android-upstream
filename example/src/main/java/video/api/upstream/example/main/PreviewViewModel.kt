@@ -2,6 +2,7 @@ package video.api.upstream.example.main
 
 import android.Manifest
 import android.app.Application
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
@@ -14,11 +15,50 @@ import video.api.upstream.models.VideoConfig
 import video.api.upstream.views.ApiVideoView
 
 class PreviewViewModel(application: Application) : AndroidViewModel(application) {
+    companion object {
+        private const val TAG = "PreviewViewModel"
+    }
+
     private lateinit var upStream: ApiVideoUpstream
     private val configuration = Configuration(getApplication())
+    private val listener = object : ApiVideoUpstream.Listener {
+        override fun onError(error: Exception) {
+            Log.e(TAG, "onError: ", error)
+            this@PreviewViewModel.error.postValue(error.message ?: "Unknown error")
+        }
 
-    val onError = MutableLiveData<String>()
-    val onDisconnect = MutableLiveData<Boolean>()
+        override fun onUploadError(partId: Int, error: Exception) {
+            Log.e(TAG, "onUploadError: ", error)
+            message.postValue(error.message ?: "Unknown error")
+        }
+
+        override fun onPartUploadStarted(partId: Int) {
+            Log.i(TAG, "onNewPartsUploadStarted: $partId")
+            currentPartId.postValue(partId)
+        }
+
+        override fun onTotalNumberOfPartsChanged(totalNumberOfParts: Int) {
+            Log.i(TAG, "onTotalNumberOfPartsChanged: $totalNumberOfParts")
+            totalNumOfParts.postValue(totalNumberOfParts)
+        }
+
+        override fun onPartUploadProgressChanged(partId: Int, progress: Float) {
+            // Log.i(TAG, "onPartUploadProgressChanged: $partId: $progress")
+            currentPartProgress.postValue(progress)
+        }
+
+        override fun onUploadStop(success: Boolean) {
+            message.postValue("Upload stopped: ${if (success) "all parts have been sent" else "some parts have not been sent"}")
+            showProgress.postValue(false)
+        }
+    }
+
+    val error = MutableLiveData<String>()
+    val message = MutableLiveData<String>()
+    val currentPartId = MutableLiveData<Int>()
+    val totalNumOfParts = MutableLiveData<Int>()
+    val currentPartProgress = MutableLiveData<Float>()
+    val showProgress = MutableLiveData<Boolean>()
 
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
     fun buildUpStream(apiVideoView: ApiVideoView) {
@@ -41,7 +81,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
                 apiKey = configuration.apiEndpoint.apiKey,
                 initialAudioConfig = audioConfig,
                 initialVideoConfig = videoConfig,
-                apiVideoView = apiVideoView
+                apiVideoView = apiVideoView,
+                listener = listener
             ).apply {
                 videoId = configuration.apiEndpoint.videoId
             }
@@ -51,7 +92,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
                 environment = configuration.apiEndpoint.environment,
                 initialAudioConfig = audioConfig,
                 initialVideoConfig = videoConfig,
-                apiVideoView = apiVideoView
+                apiVideoView = apiVideoView,
+                listener = listener
             ).apply {
                 videoToken = configuration.apiEndpoint.uploadToken
             }
@@ -61,8 +103,9 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     fun startStream() {
         try {
             upStream.startStreaming()
+            showProgress.postValue(true)
         } catch (e: Exception) {
-            onError.postValue(e.message)
+            error.postValue(e.message)
         }
     }
 

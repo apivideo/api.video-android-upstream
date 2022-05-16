@@ -31,21 +31,23 @@ class ApiVideoUpstream
 private constructor(
     private val context: Context,
     private val videosApi: VideosApi,
-    chunkSize: Int,
+    private val chunkSize: Long,
     initialAudioConfig: AudioConfig?,
     initialVideoConfig: VideoConfig?,
-    initialCamera: CameraFacingDirection,
-    private val apiVideoView: ApiVideoView
+    initialCamera: CameraFacingDirection, //TODO
+    private val apiVideoView: ApiVideoView,
+    private val listener: Listener?
 ) {
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
     constructor(
         context: Context,
         environment: Environment = Environment.PRODUCTION,
-        chunkSize: Int = 5242880,
+        chunkSize: Long = 5242880,
         initialAudioConfig: AudioConfig? = null,
         initialVideoConfig: VideoConfig? = null,
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-        apiVideoView: ApiVideoView
+        apiVideoView: ApiVideoView,
+        listener: Listener? = null
     ) : this(
         context,
         videosApi = VideosApi(environment.basePath),
@@ -53,7 +55,8 @@ private constructor(
         initialAudioConfig,
         initialVideoConfig,
         initialCamera,
-        apiVideoView
+        apiVideoView,
+        listener
     )
 
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
@@ -61,11 +64,12 @@ private constructor(
         context: Context,
         apiKey: String,
         environment: Environment = Environment.PRODUCTION,
-        chunkSize: Int = 5242880,
+        chunkSize: Long = 5242880,
         initialAudioConfig: AudioConfig? = null,
         initialVideoConfig: VideoConfig? = null,
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-        apiVideoView: ApiVideoView
+        apiVideoView: ApiVideoView,
+        listener: Listener? = null
     ) : this(
         context,
         videosApi = VideosApi(apiKey, environment.basePath),
@@ -73,12 +77,9 @@ private constructor(
         initialAudioConfig,
         initialVideoConfig,
         initialCamera,
-        apiVideoView
+        apiVideoView,
+        listener
     )
-
-    companion object {
-        private const val TAG = "ApiVideoUpStream"
-    }
 
     /**
      * Set/get audio configuration once you have created the a [ApiVideoUpstream] instance.
@@ -131,14 +132,37 @@ private constructor(
 
     var videoToken: String? = null
         set(value) {
-            field = value
-            progressiveSession = videosApi.createUploadWithUploadTokenProgressiveSession(value)
+            if (isStreaming) {
+                throw UnsupportedOperationException("You have to stop streaming first")
+            }
+            value?.let {
+                streamer.outputStream =
+                    ChunkedFileOutputStream(
+                        "${context.filesDir}/$it",
+                        chunkSize,
+                        onChunkListener
+                    )
+                progressiveSession = videosApi.createUploadWithUploadTokenProgressiveSession(it)
+                field = value
+            }
         }
 
     var videoId: String? = null
         set(value) {
-            field = value
-            progressiveSession = videosApi.createUploadProgressiveSession(value)
+            if (isStreaming) {
+                throw UnsupportedOperationException("You have to stop streaming first")
+            }
+
+            value?.let {
+                streamer.outputStream =
+                    ChunkedFileOutputStream(
+                        "${context.filesDir}/$it",
+                        chunkSize,
+                        onChunkListener
+                    )
+                progressiveSession = videosApi.createUploadProgressiveSession(it)
+                field = value
+            }
         }
 
     /**
@@ -158,27 +182,59 @@ private constructor(
 
     private val executor = Executors.newSingleThreadExecutor()
     private val onChunkListener = object : ChunkedFileOutputStream.OnChunkListener {
-        override fun onChunkSizeReached(file: File) {
+        override fun onChunkReady(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+            listener?.onTotalNumberOfPartsChanged(chunkIndex)
             executor.execute {
-                progressiveSession?.uploadPart(file)
-            }
-        }
 
-        override fun onLastChunk(file: File) {
-            executor.execute {
-                progressiveSession?.uploadLastPart(file)
+                listener?.onPartUploadStarted(chunkIndex)
+
+                if (isLastChunk) {
+                    try {
+                        progressiveSession?.uploadLastPart(file) { bytesWritten, totalBytes ->
+                            listener?.onPartUploadProgressChanged(
+                                chunkIndex,
+                                bytesWritten.toFloat() / totalBytes
+                            )
+                        }
+                        listener?.onPartUploadEnded(chunkIndex)
+                        file.delete()
+                        // Delete parent directory only if all files are uploaded
+                        file.parentFile?.delete()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error while uploading chunk", e)
+                        listener?.onUploadError(chunkIndex, e)
+                    } finally {
+                        listener?.onUploadStop(!hasRemainingParts(context, videoToken ?: videoId!!))
+                    }
+                } else {
+                    try {
+                        progressiveSession?.uploadPart(file) { bytesWritten, totalBytes ->
+                            listener?.onPartUploadProgressChanged(
+                                chunkIndex,
+                                bytesWritten.toFloat() / totalBytes
+                            )
+                        }
+                        listener?.onPartUploadEnded(chunkIndex)
+                        file.delete()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error while uploading chunk", e)
+                        listener?.onUploadError(chunkIndex, e)
+                    }
+                }
             }
         }
     }
 
-    private val streamer = CameraFlvFileStreamer(context).apply {
-        outputStream =
-            ChunkedFileOutputStream(
-                "${context.filesDir}/$videoToken",
-                chunkSize,
-                onChunkListener
-            )
+    private val errorListener = object : OnErrorListener {
+        override fun onError(error: StreamPackError) {
+            _isStreaming = false
+            Log.e(TAG, "An error happened", error)
+            listener?.onError(error)
+        }
     }
+
+    private val streamer =
+        CameraFlvFileStreamer(context, initialOnErrorListener = errorListener)
 
     /**
      * Mute/Unmute microphone
@@ -230,13 +286,6 @@ private constructor(
             }
         }
 
-    private val errorListener = object : OnErrorListener {
-        override fun onError(error: StreamPackError) {
-            _isStreaming = false
-            Log.e(TAG, "An error happened", error)
-        }
-    }
-
     /**
      * [SurfaceHolder.Callback] implementation.
      */
@@ -268,7 +317,12 @@ private constructor(
         /**
          * Calls when the surface size has been changed. This is for internal purpose only. Do not call it.
          */
-        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) =
+        override fun surfaceChanged(
+            holder: SurfaceHolder,
+            format: Int,
+            width: Int,
+            height: Int
+        ) =
             Unit
 
         /**
@@ -310,5 +364,36 @@ private constructor(
 
     fun release() {
         streamer.release()
+    }
+
+    interface Listener {
+        fun onError(error: Exception) {}
+        fun onUploadError(partId: Int, error: Exception) {}
+        fun onTotalNumberOfPartsChanged(totalNumberOfParts: Int) {}
+        fun onPartUploadStarted(partId: Int) {}
+        fun onPartUploadEnded(partId: Int) {}
+        fun onPartUploadProgressChanged(partId: Int, progress: Float) {}
+        fun onUploadStop(success: Boolean) {}
+    }
+
+
+    companion object {
+        private const val TAG = "ApiVideoUpStream"
+
+        /**
+         * @param context The application context
+         * @param video The video id or the video token
+         */
+        fun getNumOfRemainingParts(context: Context, video: String): Int {
+            return File("${context.cacheDir}/$video").list()?.size ?: 0
+        }
+
+        /**
+         * @param context The application context
+         * @param video The video id or the video token
+         */
+        fun hasRemainingParts(context: Context, video: String): Boolean {
+            return getNumOfRemainingParts(context, video) > 0
+        }
     }
 }
