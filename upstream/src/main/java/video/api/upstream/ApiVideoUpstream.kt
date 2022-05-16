@@ -9,7 +9,9 @@ import androidx.annotation.RequiresPermission
 import io.github.thibaultbee.streampack.error.StreamPackError
 import io.github.thibaultbee.streampack.listeners.OnErrorListener
 import io.github.thibaultbee.streampack.streamers.file.CameraFlvFileStreamer
-import io.github.thibaultbee.streampack.utils.*
+import io.github.thibaultbee.streampack.utils.getCameraCharacteristics
+import io.github.thibaultbee.streampack.utils.isBackCamera
+import io.github.thibaultbee.streampack.utils.isFrontCamera
 import io.github.thibaultbee.streampack.views.getPreviewOutputSize
 import video.api.uploader.VideosApi
 import video.api.uploader.api.models.Environment
@@ -34,7 +36,7 @@ private constructor(
     private val chunkSize: Long,
     initialAudioConfig: AudioConfig?,
     initialVideoConfig: VideoConfig?,
-    initialCamera: CameraFacingDirection, //TODO
+    initialCamera: CameraFacingDirection,
     private val apiVideoView: ApiVideoView,
     private val listener: Listener?
 ) {
@@ -264,10 +266,7 @@ private constructor(
          *
          * @return facing direction of the current camera
          */
-        get() {
-            return if (context.isFrontCamera(streamer.camera)) CameraFacingDirection.FRONT
-            else CameraFacingDirection.BACK
-        }
+        get() = CameraFacingDirection.fromCameraId(context, streamer.camera)
         /**
          * Set current camera facing direction.
          *
@@ -277,12 +276,7 @@ private constructor(
             if (((value == CameraFacingDirection.BACK) && (context.isFrontCamera(streamer.camera)))
                 || ((value == CameraFacingDirection.FRONT) && (context.isBackCamera(streamer.camera)))
             ) {
-                val cameraList = if (value == CameraFacingDirection.BACK) {
-                    context.getBackCameraList()
-                } else {
-                    context.getFrontCameraList()
-                }
-                streamer.camera = cameraList[0]
+                streamer.camera = value.toCameraId(context)
             }
         }
 
@@ -310,7 +304,12 @@ private constructor(
                 apiVideoView.setAspectRatio(previewSize.width, previewSize.height)
 
                 // To ensure that size is set, initialize camera in the view's thread
-                apiVideoView.post { streamer.startPreview(apiVideoView.holder.surface) }
+                apiVideoView.post {
+                    streamer.startPreview(
+                        apiVideoView.holder.surface,
+                        initialCamera.toCameraId(context)
+                    )
+                }
             }
         }
 
