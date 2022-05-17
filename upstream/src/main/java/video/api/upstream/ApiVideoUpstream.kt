@@ -39,7 +39,8 @@ private constructor(
     initialVideoConfig: VideoConfig?,
     initialCamera: CameraFacingDirection,
     private val apiVideoView: ApiVideoView,
-    private val listener: Listener?
+    private val listener: Listener?,
+    maxNumOfParallelUploads: Int
 ) {
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
     constructor(
@@ -50,7 +51,8 @@ private constructor(
         initialVideoConfig: VideoConfig? = null,
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
         apiVideoView: ApiVideoView,
-        listener: Listener? = null
+        listener: Listener? = null,
+        maxNumOfParallelUploads: Int = 1
     ) : this(
         context,
         videosApi = VideosApi(environment.basePath),
@@ -59,7 +61,8 @@ private constructor(
         initialVideoConfig,
         initialCamera,
         apiVideoView,
-        listener
+        listener,
+        maxNumOfParallelUploads
     )
 
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
@@ -72,7 +75,8 @@ private constructor(
         initialVideoConfig: VideoConfig? = null,
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
         apiVideoView: ApiVideoView,
-        listener: Listener? = null
+        listener: Listener? = null,
+        maxNumOfParallelUploads: Int = 1
     ) : this(
         context,
         videosApi = VideosApi(apiKey, environment.basePath),
@@ -81,7 +85,8 @@ private constructor(
         initialVideoConfig,
         initialCamera,
         apiVideoView,
-        listener
+        listener,
+        maxNumOfParallelUploads
     )
 
     /**
@@ -186,7 +191,7 @@ private constructor(
     val isStreaming: Boolean
         get() = _isStreaming
 
-    private val executor = Executors.newSingleThreadExecutor()
+    private val executor = Executors.newFixedThreadPool(maxNumOfParallelUploads)
     private val onChunkListener = object : ChunkedFileOutputStream.OnChunkListener {
         override fun onChunkReady(chunkIndex: Int, isLastChunk: Boolean, file: File) {
             listener?.onTotalNumberOfPartsChanged(chunkIndex)

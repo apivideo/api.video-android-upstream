@@ -13,10 +13,12 @@ import com.google.android.material.snackbar.Snackbar
 import video.api.upstream.example.R
 import video.api.upstream.example.databinding.FragmentPreviewBinding
 import video.api.upstream.example.utils.DialogHelper
+import video.api.upstream.example.utils.ProgressAdapter
 
 class PreviewFragment : Fragment() {
     private val viewModel: PreviewViewModel by viewModels()
     private lateinit var binding: FragmentPreviewBinding
+    private val adapter = ProgressAdapter()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -24,6 +26,8 @@ class PreviewFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         binding = FragmentPreviewBinding.inflate(inflater, container, false)
+        binding.partsProgressRecyclerView.adapter = adapter
+
         return binding.root
     }
 
@@ -73,16 +77,20 @@ class PreviewFragment : Fragment() {
             }
         }
 
-        viewModel.currentPartId.observe(viewLifecycleOwner) {
-            binding.currentPart.text = "$it"
+        viewModel.newPartId.observe(viewLifecycleOwner) {
+            adapter.addPart(it)
+        }
+
+        viewModel.endPartId.observe(viewLifecycleOwner) {
+            adapter.removePart(it)
+        }
+
+        viewModel.partProgress.observe(viewLifecycleOwner) {
+            adapter.updateProgress(it.partId, it.progress)
         }
 
         viewModel.totalNumOfParts.observe(viewLifecycleOwner) {
             binding.totalNumOfParts.text = "$it"
-        }
-
-        viewModel.currentPartProgress.observe(viewLifecycleOwner) {
-            binding.partProgress.progress = (it * 100).toInt()
         }
 
         viewModel.showProgress.observe(viewLifecycleOwner) {
