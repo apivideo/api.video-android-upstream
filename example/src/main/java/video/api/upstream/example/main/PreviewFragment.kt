@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.google.android.material.snackbar.Snackbar
 import video.api.upstream.example.R
 import video.api.upstream.example.databinding.FragmentPreviewBinding
 import video.api.upstream.example.utils.DialogHelper
@@ -64,6 +65,14 @@ class PreviewFragment : Fragment() {
             showToast(it)
         }
 
+        viewModel.uploadStopped.observe(viewLifecycleOwner) {
+            if (it) {
+                showSnackBar(getString(R.string.upload_success))
+            } else {
+                showSnackBar(getString(R.string.upload_failed)) { viewModel.retry() }
+            }
+        }
+
         viewModel.currentPartId.observe(viewLifecycleOwner) {
             binding.currentPart.text = "$it"
         }
@@ -89,6 +98,16 @@ class PreviewFragment : Fragment() {
         requireActivity().requestedOrientation =
             ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         DialogHelper.showAlertDialog(requireContext(), title, message)
+    }
+
+    private fun showSnackBar(message: String, retryAction: (() -> Unit)? = null) {
+        Snackbar.make(binding.apiVideoView, message, Snackbar.LENGTH_SHORT).apply {
+            retryAction?.let { action ->
+                setAction(R.string.retry) {
+                    action()
+                }
+            }
+        }.show()
     }
 
     private fun showToast(message: String) {

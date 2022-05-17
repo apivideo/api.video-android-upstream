@@ -141,7 +141,7 @@ private constructor(
             value?.let {
                 streamer.outputStream =
                     ChunkedFileOutputStream(
-                        "${context.filesDir}/$it",
+                        "${context.cacheDir}/$it",
                         partSize,
                         onChunkListener
                     )
@@ -159,7 +159,7 @@ private constructor(
             value?.let {
                 streamer.outputStream =
                     ChunkedFileOutputStream(
-                        "${context.filesDir}/$it",
+                        "${context.cacheDir}/$it",
                         partSize,
                         onChunkListener
                     )
@@ -167,6 +167,9 @@ private constructor(
                 field = value
             }
         }
+
+    private val video: String
+        get() = videoId ?: videoToken ?: throw IllegalStateException("Video token or id is not set")
 
     /**
      * Hack for private setter of [isStreaming].
@@ -187,44 +190,7 @@ private constructor(
     private val onChunkListener = object : ChunkedFileOutputStream.OnChunkListener {
         override fun onChunkReady(chunkIndex: Int, isLastChunk: Boolean, file: File) {
             listener?.onTotalNumberOfPartsChanged(chunkIndex)
-            executor.execute {
-
-                listener?.onPartUploadStarted(chunkIndex)
-
-                if (isLastChunk) {
-                    try {
-                        progressiveSession?.uploadLastPart(file) { bytesWritten, totalBytes ->
-                            listener?.onPartUploadProgressChanged(
-                                chunkIndex,
-                                bytesWritten.toFloat() / totalBytes
-                            )
-                        }
-                        listener?.onPartUploadEnded(chunkIndex)
-                        file.delete()
-                        // Delete parent directory only if all files are uploaded
-                        file.parentFile?.delete()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error while uploading chunk", e)
-                        listener?.onUploadError(chunkIndex, e)
-                    } finally {
-                        listener?.onUploadStop(!hasRemainingParts(context, videoToken ?: videoId!!))
-                    }
-                } else {
-                    try {
-                        progressiveSession?.uploadPart(file) { bytesWritten, totalBytes ->
-                            listener?.onPartUploadProgressChanged(
-                                chunkIndex,
-                                bytesWritten.toFloat() / totalBytes
-                            )
-                        }
-                        listener?.onPartUploadEnded(chunkIndex)
-                        file.delete()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error while uploading chunk", e)
-                        listener?.onUploadError(chunkIndex, e)
-                    }
-                }
-            }
+            launchUpload(chunkIndex, isLastChunk, file)
         }
     }
 
@@ -372,6 +338,73 @@ private constructor(
         streamer.release()
     }
 
+    private fun launchUpload(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+        executor.execute {
+
+            listener?.onPartUploadStarted(chunkIndex)
+
+            if (isLastChunk) {
+                try {
+                    progressiveSession?.uploadLastPart(
+                        file,
+                        chunkIndex
+                    ) { bytesWritten, totalBytes ->
+                        listener?.onPartUploadProgressChanged(
+                            chunkIndex,
+                            bytesWritten.toFloat() / totalBytes
+                        )
+                    }
+                    listener?.onPartUploadEnded(chunkIndex)
+                    file.delete()
+                    // Delete parent directory only if all files are uploaded
+                    file.parentFile?.delete()
+                } catch (e: Exception) {
+                    file.renameTo(File(file.parentFile, file.name + ".last")) // Identify last
+                    Log.e(TAG, "Error while uploading chunk", e)
+                    listener?.onUploadError(chunkIndex, e)
+                } finally {
+                    listener?.onUploadStop(!hasRemainingParts(context, video))
+                }
+            } else {
+                try {
+                    progressiveSession?.uploadPart(file, chunkIndex) { bytesWritten, totalBytes ->
+                        listener?.onPartUploadProgressChanged(
+                            chunkIndex,
+                            bytesWritten.toFloat() / totalBytes
+                        )
+                    }
+                    listener?.onPartUploadEnded(chunkIndex)
+                    file.delete()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error while uploading chunk", e)
+                    listener?.onUploadError(chunkIndex, e)
+                }
+            }
+        }
+    }
+
+    /**
+     * Retry to upload the chunk of the current video that has not been uploaded.
+     */
+    fun retry() {
+        retry(video)
+    }
+
+    /**
+     * Retry to upload the chunk that has not been uploaded.
+     *
+     * @param video The video id or the video token
+     */
+    fun retry(video: String) {
+        File("${context.cacheDir}/$video").listFiles()?.forEach {
+            if (it.name.endsWith(".last")) {
+                launchUpload(it.name.replace(".last", "").toInt(), true, it)
+            } else {
+                launchUpload(it.name.toInt(), false, it)
+            }
+        }
+    }
+
     interface Listener {
         fun onError(error: Exception) {}
         fun onUploadError(partId: Int, error: Exception) {}
@@ -382,9 +415,8 @@ private constructor(
         fun onUploadStop(success: Boolean) {}
     }
 
-
     companion object {
-        private const val TAG = "ApiVideoUpStream"
+        private const val TAG = "ApiVideoUpstream"
 
         /**
          * @param context The application context

@@ -48,8 +48,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         }
 
         override fun onUploadStop(success: Boolean) {
-            message.postValue("Upload stopped: ${if (success) "all parts have been sent" else "some parts have not been sent"}")
             showProgress.postValue(false)
+            uploadStopped.postValue(success)
         }
     }
 
@@ -59,6 +59,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     val totalNumOfParts = MutableLiveData<Int>()
     val currentPartProgress = MutableLiveData<Float>()
     val showProgress = MutableLiveData<Boolean>()
+    val uploadStopped = MutableLiveData<Boolean>()
 
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
     fun buildUpStream(apiVideoView: ApiVideoView) {
@@ -97,6 +98,15 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             ).apply {
                 videoToken = configuration.apiEndpoint.uploadToken
             }
+        }
+    }
+
+    fun retry() {
+        try {
+            upStream.retry()
+            showProgress.postValue(true)
+        } catch (e: Exception) {
+            error.postValue(e.message)
         }
     }
 
