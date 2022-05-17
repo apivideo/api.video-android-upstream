@@ -32,21 +32,25 @@ class ChunkedFileOutputStream(
     }
 
     override fun write(b: Int) {
-        hasWritten = true
-        if (chuckSentByte >= chunkMaxSize) {
-            createNextOutputStream()
+        synchronized(this) {
+            hasWritten = true
+            if (chuckSentByte >= chunkMaxSize) {
+                createNextOutputStream()
+            }
+            outputStream.write(b)
+            chuckSentByte++
         }
-        outputStream.write(b)
-        chuckSentByte++
     }
 
     override fun write(b: ByteArray) {
-        hasWritten = true
-        if (chuckSentByte >= chunkMaxSize) {
-            createNextOutputStream()
+        synchronized(this) {
+            hasWritten = true
+            if (chuckSentByte >= chunkMaxSize) {
+                createNextOutputStream()
+            }
+            outputStream.write(b)
+            chuckSentByte += b.size
         }
-        outputStream.write(b)
-        chuckSentByte += b.size
     }
 
     override fun close() {
