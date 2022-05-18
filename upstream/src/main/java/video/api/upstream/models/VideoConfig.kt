@@ -22,6 +22,15 @@ class VideoConfig(
      */
     val fps: Int = 30
 ) {
+    init {
+        require(fps <= 60) { "FPS must be less or equal to 60" }
+        if (resolution == Resolution.RESOLUTION_2160) {
+            require(bitrate <= 50 * 1000 * 1000) { "Bitrate must be less or equal to 50Mbps for 4K" }
+        } else {
+            require(bitrate <= 16 * 1000 * 1000) { "Bitrate must be less or equal to 16Mbps" }
+        }
+    }
+
     internal fun toSdkConfig(): io.github.thibaultbee.streampack.data.VideoConfig {
         return io.github.thibaultbee.streampack.data.VideoConfig(
             startBitrate = bitrate,
@@ -46,6 +55,7 @@ class VideoConfig(
                 Resolution.RESOLUTION_480 -> 3000000
                 Resolution.RESOLUTION_720 -> 5000000
                 Resolution.RESOLUTION_1080 -> 7000000
+                Resolution.RESOLUTION_2160 -> 10000000
             }
         }
     }
