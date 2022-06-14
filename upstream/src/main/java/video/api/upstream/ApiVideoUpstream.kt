@@ -333,59 +333,58 @@ private constructor(
     fun startStreaming() {
         require(progressiveSession != null) { "Progressive session is not set" }
         streamer.startStream()
+        _isStreaming = true
     }
 
     fun stopStreaming() {
         streamer.stopStream()
+        _isStreaming = false
     }
 
     fun release() {
         streamer.release()
     }
 
+    private var numOfParts = 0
+    private var numOfPartsUploaded = 0
+
     private fun launchUpload(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+        numOfParts++
         executor.execute {
+            try {
+                listener?.onPartUploadStarted(chunkIndex)
 
-            listener?.onPartUploadStarted(chunkIndex)
-
-            if (isLastChunk) {
-                try {
-                    progressiveSession?.uploadLastPart(
-                        file,
-                        chunkIndex
-                    ) { bytesWritten, totalBytes ->
-                        listener?.onPartUploadProgressChanged(
-                            chunkIndex,
-                            bytesWritten.toFloat() / totalBytes
-                        )
-                    }
-                    listener?.onPartUploadEnded(chunkIndex)
-                    file.delete()
-                    // Delete parent directory only if all files are uploaded
-                    file.parentFile?.delete()
-                } catch (e: Exception) {
-                    file.renameTo(File(file.parentFile, file.name + ".last")) // Identify last
-                    Log.e(TAG, "Error while uploading chunk", e)
-                    listener?.onUploadError(chunkIndex, e)
-                } finally {
-                    listener?.onUploadStop(!hasRemainingParts(context, video))
+                progressiveSession?.uploadPart(
+                    file,
+                    chunkIndex,
+                    isLastChunk
+                ) { bytesWritten, totalBytes ->
+                    listener?.onPartUploadProgressChanged(
+                        chunkIndex,
+                        bytesWritten.toFloat() / totalBytes
+                    )
                 }
-            } else {
-                try {
-                    progressiveSession?.uploadPart(file, chunkIndex) { bytesWritten, totalBytes ->
-                        listener?.onPartUploadProgressChanged(
-                            chunkIndex,
-                            bytesWritten.toFloat() / totalBytes
-                        )
-                    }
-                    listener?.onPartUploadEnded(chunkIndex)
-                    file.delete()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error while uploading chunk", e)
-                    listener?.onUploadError(chunkIndex, e)
+                listener?.onPartUploadEnded(chunkIndex)
+                file.delete()
+            } catch (e: Exception) {
+                if (isLastChunk && !file.name.endsWith(".last")) {
+                    file.renameTo(File(file.parentFile, file.name + ".last")) // Identify last
+                }
+                Log.e(TAG, "Error while uploading chunk: $chunkIndex", e)
+                listener?.onUploadError(chunkIndex, e)
+            } finally {
+                numOfPartsUploaded++
+                if (!isStreaming && numOfPartsUploaded == numOfParts) {
+                    onLastPart(file)
                 }
             }
         }
+    }
+
+    private fun onLastPart(file: File) {
+        // Delete parent directory only if all files are uploaded
+        file.parentFile?.delete()
+        listener?.onUploadStop(!hasRemainingParts(context, video))
     }
 
     /**
