@@ -103,8 +103,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
                 initialAudioConfig = audioConfig,
                 initialVideoConfig = videoConfig,
                 apiVideoView = apiVideoView,
-                listener = listener,
-                maxNumOfParallelUploads = 3
+                listener = listener
             ).apply {
                 videoToken = configuration.apiEndpoint.uploadToken
             }

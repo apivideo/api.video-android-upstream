@@ -40,7 +40,7 @@ private constructor(
     initialCamera: CameraFacingDirection,
     private val apiVideoView: ApiVideoView,
     private val listener: Listener?,
-    maxNumOfParallelUploads: Int
+    private val maxNumOfParallelUploads: Int
 ) {
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
     constructor(
@@ -52,17 +52,21 @@ private constructor(
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
         apiVideoView: ApiVideoView,
         listener: Listener? = null,
-        maxNumOfParallelUploads: Int = 1
+        timeout: Int = 60000, // 1 min
     ) : this(
         context,
-        videosApi = VideosApi(environment.basePath),
+        videosApi = VideosApi(ApiClient(environment.basePath).apply {
+            this.writeTimeout = timeout
+            this.readTimeout = timeout
+            this.connectTimeout = timeout
+        }),
         chunkSize,
         initialAudioConfig,
         initialVideoConfig,
         initialCamera,
         apiVideoView,
         listener,
-        maxNumOfParallelUploads
+        1
     )
 
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
@@ -76,10 +80,15 @@ private constructor(
         initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
         apiVideoView: ApiVideoView,
         listener: Listener? = null,
-        maxNumOfParallelUploads: Int = 1
+        maxNumOfParallelUploads: Int = 1,
+        timeout: Int = 60000 // 1 min
     ) : this(
         context,
-        videosApi = VideosApi(apiKey, environment.basePath),
+        videosApi = VideosApi(ApiClient(apiKey, environment.basePath).apply {
+            this.writeTimeout = timeout
+            this.readTimeout = timeout
+            this.connectTimeout = timeout
+        }),
         chunkSize,
         initialAudioConfig,
         initialVideoConfig,
@@ -143,6 +152,8 @@ private constructor(
             if (isStreaming) {
                 throw UnsupportedOperationException("You have to stop streaming first")
             }
+            require(maxNumOfParallelUploads == 1) { "Parallel uploads is only supported for videoId" }
+
             value?.let {
                 streamer.outputStream =
                     ChunkedFileOutputStream(
