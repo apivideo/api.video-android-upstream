@@ -82,12 +82,6 @@ class ApiEndpoint(private val sharedPref: SharedPreferences, private val resourc
             field
         )!!
 
-    val videoId: String = ""
-        get() = sharedPref.getString(
-            resources.getString(R.string.api_endpoint_video_id_key),
-            field
-        )!!
-
     val uploadToken: String = ""
         get() = sharedPref.getString(
             resources.getString(R.string.api_endpoint_upload_token_key),

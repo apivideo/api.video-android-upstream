@@ -23,16 +23,12 @@ class PreferencesFragment : PreferenceFragmentCompat() {
         (findPreference(getString(R.string.api_endpoint_type_key)) as SwitchPreference?)!!.apply {
             (findPreference(getString(R.string.api_endpoint_api_key_key)) as EditTextPreference?)!!.isVisible =
                 isChecked
-            (findPreference(getString(R.string.api_endpoint_video_id_key)) as EditTextPreference?)!!.isVisible =
-                isChecked
             (findPreference(getString(R.string.api_endpoint_upload_token_key)) as EditTextPreference?)!!.isVisible =
                 !isChecked
 
             setOnPreferenceChangeListener { _, newValue ->
                 (findPreference(getString(R.string.api_endpoint_api_key_key)) as EditTextPreference?)!!.isVisible =
                     newValue as Boolean
-                (findPreference(getString(R.string.api_endpoint_video_id_key)) as EditTextPreference?)!!.isVisible =
-                    newValue
                 (findPreference(getString(R.string.api_endpoint_upload_token_key)) as EditTextPreference?)!!.isVisible =
                     !newValue
                 true

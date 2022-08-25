@@ -11,8 +11,8 @@
         <SwitchPreference
             android:defaultValue="false"
             app:key="@string/api_endpoint_type_key"
-            app:summaryOn="@string/api_endpoint_api_key"
             app:summaryOff="@string/api_endpoint_upload_token"
+            app:summaryOn="@string/api_endpoint_api_key"
             app:title="@string/api_endpoint_type" />
 
         <EditTextPreference
@@ -20,13 +20,6 @@
             app:key="@string/api_endpoint_api_key_key"
             app:title="@string/api_endpoint_api_key"
             app:useSimpleSummaryProvider="true" />
-
-        <EditTextPreference
-            android:defaultValue="@string/api_endpoint_video_id_default"
-            app:key="@string/api_endpoint_video_id_key"
-            app:title="@string/api_endpoint_video_id"
-            app:useSimpleSummaryProvider="true" />
-
 
         <EditTextPreference
             android:defaultValue="@string/api_endpoint_upload_token_default"

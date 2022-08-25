@@ -3,6 +3,7 @@ package video.api.upstream
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.ServiceConnection
 import android.util.Log
 import android.view.SurfaceHolder
 import androidx.annotation.RequiresPermission
@@ -13,17 +14,14 @@ import io.github.thibaultbee.streampack.utils.getCameraCharacteristics
 import io.github.thibaultbee.streampack.utils.isBackCamera
 import io.github.thibaultbee.streampack.utils.isFrontCamera
 import io.github.thibaultbee.streampack.views.getPreviewOutputSize
-import video.api.uploader.VideosApi
 import video.api.uploader.api.ApiClient
 import video.api.uploader.api.models.Environment
-import video.api.uploader.api.upload.IProgressiveUploadSession
+import video.api.uploader.api.services.UploadService
 import video.api.upstream.enums.CameraFacingDirection
-import video.api.upstream.models.AudioConfig
-import video.api.upstream.models.ChunkedFileOutputStream
-import video.api.upstream.models.VideoConfig
+import video.api.upstream.models.*
 import video.api.upstream.views.ApiVideoView
 import java.io.File
-import java.util.concurrent.Executors
+import java.lang.IllegalArgumentException
 
 class ApiVideoUpstream
 /**
@@ -31,73 +29,18 @@ class ApiVideoUpstream
  * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
  */
 @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
-private constructor(
+constructor(
     private val context: Context,
-    private val videosApi: VideosApi,
-    private val partSize: Long,
+    private val uploadService: UploadService,
+    private val partSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
     initialAudioConfig: AudioConfig?,
     initialVideoConfig: VideoConfig?,
-    initialCamera: CameraFacingDirection,
+    initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
     private val apiVideoView: ApiVideoView,
-    private val listener: Listener?,
-    private val maxNumOfParallelUploads: Int
+    private val sessionListener: SessionListener? = null,
+    private val sessionUploadPartListener: SessionUploadPartListener? = null,
+    private val streamerListener: StreamerListener? = null,
 ) {
-    @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
-    constructor(
-        context: Context,
-        environment: Environment = Environment.PRODUCTION,
-        chunkSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
-        initialAudioConfig: AudioConfig? = null,
-        initialVideoConfig: VideoConfig? = null,
-        initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-        apiVideoView: ApiVideoView,
-        listener: Listener? = null,
-        timeout: Int = 60000, // 1 min
-    ) : this(
-        context,
-        videosApi = VideosApi(ApiClient(environment.basePath).apply {
-            this.writeTimeout = timeout
-            this.readTimeout = timeout
-            this.connectTimeout = timeout
-        }),
-        chunkSize,
-        initialAudioConfig,
-        initialVideoConfig,
-        initialCamera,
-        apiVideoView,
-        listener,
-        1
-    )
-
-    @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
-    constructor(
-        context: Context,
-        apiKey: String,
-        environment: Environment = Environment.PRODUCTION,
-        chunkSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
-        initialAudioConfig: AudioConfig? = null,
-        initialVideoConfig: VideoConfig? = null,
-        initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-        apiVideoView: ApiVideoView,
-        listener: Listener? = null,
-        maxNumOfParallelUploads: Int = 1,
-        timeout: Int = 60000 // 1 min
-    ) : this(
-        context,
-        videosApi = VideosApi(ApiClient(apiKey, environment.basePath).apply {
-            this.writeTimeout = timeout
-            this.readTimeout = timeout
-            this.connectTimeout = timeout
-        }),
-        chunkSize,
-        initialAudioConfig,
-        initialVideoConfig,
-        initialCamera,
-        apiVideoView,
-        listener,
-        maxNumOfParallelUploads
-    )
-
     /**
      * Set/get audio configuration once you have created the a [ApiVideoUpstream] instance.
      */
@@ -126,42 +69,49 @@ private constructor(
          */
         @RequiresPermission(allOf = [Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO])
         set(value) {
+            require(value != null) { "Audio config must not be null" }
             if (isStreaming) {
                 throw UnsupportedOperationException("You have to stop streaming first")
             }
-            value?.let {
-                if (it.resolution != it.resolution) {
-                    videoConfig?.let { oldConfig ->
-                        Log.i(
-                            this::class.simpleName,
-                            "Resolution has been changed from ${oldConfig.resolution} to ${it.resolution}. Restarting preview."
-                        )
-                    }
-                    stopPreview()
-                    streamer.configure(it.toSdkConfig())
-                    streamer.startPreview(apiVideoView.holder.surface)
+            if (videoConfig?.resolution != value.resolution) {
+                Log.i(
+                    this::class.simpleName,
+                    "Resolution has been changed from ${videoConfig?.resolution} to ${value.resolution}. Restarting preview."
+                )
+                stopPreview()
+                streamer.configure(value.toSdkConfig())
+                try {
+                    startPreview()
+                } catch (e: UnsupportedOperationException) {
+                    Log.w(TAG, "${e.message}", e)
                 }
-                field = value
             }
+            field = value
         }
 
-    private var progressiveSession: IProgressiveUploadSession? = null
+    private var upstreamerSession: UpstreamSession? = null
 
-    var videoToken: String? = null
+    var token: String? = null
         set(value) {
             if (isStreaming) {
                 throw UnsupportedOperationException("You have to stop streaming first")
             }
-            require(maxNumOfParallelUploads == 1) { "Parallel uploads is only supported for videoId" }
 
             value?.let {
+                val partsDir = context.createSessionWorkDir()
                 streamer.outputStream =
                     ChunkedFileOutputStream(
-                        "${context.cacheDir}/$it",
+                        partsDir,
                         partSize,
                         onChunkListener
                     )
-                progressiveSession = videosApi.createUploadWithUploadTokenProgressiveSession(it)
+                upstreamerSession = UpstreamSession.createForUploadToken(
+                    partsDir,
+                    uploadService,
+                    it,
+                    sessionListener,
+                    sessionUploadPartListener
+                )
                 field = value
             }
         }
@@ -173,19 +123,25 @@ private constructor(
             }
 
             value?.let {
-                streamer.outputStream =
-                    ChunkedFileOutputStream(
-                        "${context.cacheDir}/$it",
-                        partSize,
-                        onChunkListener
-                    )
-                progressiveSession = videosApi.createUploadProgressiveSession(it)
+                val partsDir = context.createSessionWorkDir()
+                upstreamerSession = UpstreamSession.createForVideoId(
+                    partsDir,
+                    uploadService,
+                    it,
+                    sessionListener,
+                    sessionUploadPartListener
+                ).apply {
+                    streamer.outputStream =
+                        ChunkedFileOutputStream(
+                            partsDir,
+                            partSize,
+                            onChunkListener
+                        )
+                }
+
                 field = value
             }
         }
-
-    private val video: String
-        get() = videoId ?: videoToken ?: throw IllegalStateException("Video token or id is not set")
 
     /**
      * Hack for private setter of [isStreaming].
@@ -202,19 +158,18 @@ private constructor(
     val isStreaming: Boolean
         get() = _isStreaming
 
-    private val executor = Executors.newFixedThreadPool(maxNumOfParallelUploads)
     private val onChunkListener = object : ChunkedFileOutputStream.OnChunkListener {
         override fun onChunkReady(chunkIndex: Int, isLastChunk: Boolean, file: File) {
-            listener?.onTotalNumberOfPartsChanged(chunkIndex)
-            launchUpload(chunkIndex, isLastChunk, file)
+            upstreamerSession!!.upload(chunkIndex, isLastChunk, file)
         }
     }
 
     private val errorListener = object : OnErrorListener {
         override fun onError(error: StreamPackError) {
             _isStreaming = false
-            Log.e(TAG, "An error happened", error)
-            listener?.onError(error)
+            Log.e(TAG, "An error in streamer happened", error)
+            upstreamerSession!!.cancelAll()
+            streamerListener?.onError(error)
         }
     }
 
@@ -323,12 +278,20 @@ private constructor(
         require(partSize <= ApiClient.MAX_CHUNK_SIZE) {
             "Part size must be less than or equal to ${ApiClient.MAX_CHUNK_SIZE}"
         }
+
         apiVideoView.holder.addCallback(surfaceCallback)
+        camera = initialCamera
         audioConfig?.let {
             streamer.configure(it.toSdkConfig())
         }
         videoConfig?.let {
             streamer.configure(it.toSdkConfig())
+            // Try to start in case [SurfaceView] has already been created
+            try {
+                startPreview()
+            } catch (e: Exception) {
+                Log.i(TAG, "Failed to start preview. Surface might not be created yet", e)
+            }
         }
     }
 
@@ -342,7 +305,8 @@ private constructor(
     }
 
     fun startStreaming() {
-        require(progressiveSession != null) { "Progressive session is not set" }
+        require(upstreamerSession != null) { "Set video id or token before" }
+
         streamer.startStream()
         _isStreaming = true
     }
@@ -356,97 +320,75 @@ private constructor(
         streamer.release()
     }
 
-    private var numOfParts = 0
-    private var numOfPartsUploaded = 0
-
-    private fun launchUpload(chunkIndex: Int, isLastChunk: Boolean, file: File) {
-        numOfParts++
-        executor.execute {
-            try {
-                listener?.onPartUploadStarted(chunkIndex)
-
-                progressiveSession?.uploadPart(
-                    file,
-                    chunkIndex,
-                    isLastChunk
-                ) { bytesWritten, totalBytes ->
-                    listener?.onPartUploadProgressChanged(
-                        chunkIndex,
-                        bytesWritten.toFloat() / totalBytes
-                    )
-                }
-                listener?.onPartUploadEnded(chunkIndex)
-                file.delete()
-            } catch (e: Exception) {
-                if (isLastChunk && !file.name.endsWith(".last")) {
-                    file.renameTo(File(file.parentFile, file.name + ".last")) // Identify last
-                }
-                Log.e(TAG, "Error while uploading chunk: $chunkIndex", e)
-                listener?.onUploadError(chunkIndex, e)
-            } finally {
-                numOfPartsUploaded++
-                if (!isStreaming && numOfPartsUploaded == numOfParts) {
-                    onLastPart(file)
-                }
-            }
-        }
-    }
-
-    private fun onLastPart(file: File) {
-        // Delete parent directory only if all files are uploaded
-        file.parentFile?.delete()
-        listener?.onUploadStop(!hasRemainingParts(context, video))
-    }
-
-    /**
-     * Retry to upload the chunk of the current video that has not been uploaded.
-     */
-    fun retry() {
-        retry(video)
-    }
-
-    /**
-     * Retry to upload the chunk that has not been uploaded.
-     *
-     * @param video The video id or the video token
-     */
-    fun retry(video: String) {
-        File("${context.cacheDir}/$video").listFiles()?.forEach {
-            if (it.name.endsWith(".last")) {
-                launchUpload(it.name.replace(".last", "").toInt(), true, it)
-            } else {
-                launchUpload(it.name.toInt(), false, it)
-            }
-        }
-    }
-
-    interface Listener {
-        fun onError(error: Exception) {}
-        fun onUploadError(partId: Int, error: Exception) {}
-        fun onTotalNumberOfPartsChanged(totalNumberOfParts: Int) {}
-        fun onPartUploadStarted(partId: Int) {}
-        fun onPartUploadEnded(partId: Int) {}
-        fun onPartUploadProgressChanged(partId: Int, progress: Float) {}
-        fun onUploadStop(success: Boolean) {}
+    fun releaseAndCancelAll() {
+        release()
+        uploadService.cancelAll()
     }
 
     companion object {
         private const val TAG = "ApiVideoUpstream"
 
-        /**
-         * @param context The application context
-         * @param video The video id or the video token
-         */
-        fun getNumOfRemainingParts(context: Context, video: String): Int {
-            return File("${context.cacheDir}/$video").list()?.size ?: 0
+        fun deleteAll(context: Context) {
+            context.upstreamWorkDir.deleteRecursively()
         }
 
         /**
-         * @param context The application context
-         * @param video The video id or the video token
+         * Build the [ApiVideoUpstream].
+         * Internally, it starts and binds an [UploadService].
+         *
+         * @see unbindService
          */
-        fun hasRemainingParts(context: Context, video: String): Boolean {
-            return getNumOfRemainingParts(context, video) > 0
+        @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
+        fun create(
+            context: Context,
+            serviceClass: Class<out UploadService> = UploadService::class.java,
+            apiKey: String? = null,
+            environment: Environment = Environment.PRODUCTION,
+            timeout: Int? = null,
+            partSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
+            initialAudioConfig: AudioConfig? = null,
+            initialVideoConfig: VideoConfig? = null,
+            initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
+            apiVideoView: ApiVideoView,
+            sessionListener: SessionListener? = null,
+            sessionUploadPartListener: SessionUploadPartListener? = null,
+            streamerListener: StreamerListener? = null,
+            onUpstreamSession: (ApiVideoUpstream) -> Unit,
+            onServiceDisconnected: () -> Unit
+        ): ServiceConnection {
+            return UploadService.startService(
+                context = context,
+                serviceClass = serviceClass,
+                apiKey = apiKey,
+                environment = environment,
+                timeout = timeout,
+                onServiceCreated = { service ->
+                    onUpstreamSession(
+                        ApiVideoUpstream(
+                            context,
+                            service,
+                            partSize,
+                            initialAudioConfig,
+                            initialVideoConfig,
+                            initialCamera,
+                            apiVideoView,
+                            sessionListener,
+                            sessionUploadPartListener,
+                            streamerListener
+                        )
+                    )
+                },
+                onServiceDisconnected = { onServiceDisconnected() },
+                sdkName = "upstream",
+                sdkVersion = "1.0.0"
+            )
+        }
+
+        fun unbindService(
+            context: Context,
+            serviceConnection: ServiceConnection
+        ) {
+            UploadService.unbindService(context, serviceConnection)
         }
     }
 }

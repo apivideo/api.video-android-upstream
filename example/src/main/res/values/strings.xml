@@ -44,9 +44,6 @@
     <string name="api_endpoint_environment">Environment</string>
     <string name="api_endpoint_api_key_default">YOUR_API_KEY</string>
     <string name="api_endpoint_api_key_key">api_endpoint_api_key_key</string>
-    <string name="api_endpoint_video_id_default">YOUR_VIDEO_ID</string>
-    <string name="api_endpoint_video_id_key">api_endpoint_video_id_key</string>
-    <string name="api_endpoint_video_id">Video ID</string>
     <string name="api_endpoint_upload_token_default">YOUR_UPLOAD_TOKEN</string>
     <string name="api_endpoint_upload_token_key">api_endpoint_upload_token_key</string>
     <string name="default_part">0</string>
@@ -54,4 +51,5 @@
     <string name="upload_failed">Upload stopped: some parts have not been sent</string>
     <string name="upload_success">Upload stopped: all parts have been sent</string>
     <string name="total">Total:</string>
+    <string name="separator">"/"</string>
 </resources>

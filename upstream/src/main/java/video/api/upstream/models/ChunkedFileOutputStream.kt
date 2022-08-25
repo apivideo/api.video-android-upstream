@@ -5,19 +5,20 @@ import java.io.FileOutputStream
 import java.io.OutputStream
 
 class ChunkedFileOutputStream(
-    private val tmpParentFilePath: String,
+    private val chunkFileDir: File,
     private val chunkMaxSize: Long,
     private val onChunkListener: OnChunkListener
 ) : OutputStream() {
     private var chuckSentByte = 0L
     private var chunkPartIndex = 0
     private var hasWritten = false
+    private var isClosed = false
 
     private lateinit var currentFile: File
     private val nextFile: File
         get() {
             chunkPartIndex++
-            currentFile = File(tmpParentFilePath, "$chunkPartIndex").apply {
+            currentFile = File(chunkFileDir, "$chunkPartIndex").apply {
                 parentFile?.mkdirs()
             }
             return currentFile
@@ -55,9 +56,10 @@ class ChunkedFileOutputStream(
 
     override fun close() {
         outputStream.close()
-        if (hasWritten) {
+        if (!isClosed) {
             onChunkListener.onChunkReady(chunkPartIndex, true, currentFile)
         }
+        isClosed = true
     }
 
     interface OnChunkListener {

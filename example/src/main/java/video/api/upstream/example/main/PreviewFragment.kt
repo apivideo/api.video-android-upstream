@@ -13,12 +13,12 @@ import com.google.android.material.snackbar.Snackbar
 import video.api.upstream.example.R
 import video.api.upstream.example.databinding.FragmentPreviewBinding
 import video.api.upstream.example.utils.DialogHelper
-import video.api.upstream.example.utils.ProgressAdapter
+import video.api.upstream.example.utils.SessionAdapter
 
 class PreviewFragment : Fragment() {
     private val viewModel: PreviewViewModel by viewModels()
     private lateinit var binding: FragmentPreviewBinding
-    private val adapter = ProgressAdapter()
+    private val sessionAdapter = SessionAdapter()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,7 +26,7 @@ class PreviewFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         binding = FragmentPreviewBinding.inflate(inflater, container, false)
-        binding.partsProgressRecyclerView.adapter = adapter
+        binding.sessionRecyclerView.adapter = sessionAdapter
 
         return binding.root
     }
@@ -69,7 +69,7 @@ class PreviewFragment : Fragment() {
             showToast(it)
         }
 
-        viewModel.uploadStopped.observe(viewLifecycleOwner) {
+        viewModel.sessionComplete.observe(viewLifecycleOwner) {
             if (it) {
                 showSnackBar(getString(R.string.upload_success))
             } else {
@@ -77,28 +77,20 @@ class PreviewFragment : Fragment() {
             }
         }
 
-        viewModel.newPartId.observe(viewLifecycleOwner) {
-            adapter.addPart(it)
+        viewModel.newSession.observe(viewLifecycleOwner) {
+            sessionAdapter.addSession(it)
         }
 
-        viewModel.endPartId.observe(viewLifecycleOwner) {
-            adapter.removePart(it)
+        viewModel.sessionEnded.observe(viewLifecycleOwner) {
+            sessionAdapter.removeSession(it)
         }
 
-        viewModel.partProgress.observe(viewLifecycleOwner) {
-            adapter.updateProgress(it.partId, it.progress)
+        viewModel.numOfParts.observe(viewLifecycleOwner) {
+            sessionAdapter.updateNumOfParts(it)
         }
 
-        viewModel.totalNumOfParts.observe(viewLifecycleOwner) {
-            binding.totalNumOfParts.text = "$it"
-        }
-
-        viewModel.showProgress.observe(viewLifecycleOwner) {
-            binding.progressLayout.visibility = if (it) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
+        viewModel.progress.observe(viewLifecycleOwner) {
+            sessionAdapter.updatePartProgress(it)
         }
     }
 
