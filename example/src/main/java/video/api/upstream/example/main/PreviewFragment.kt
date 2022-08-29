@@ -73,7 +73,7 @@ class PreviewFragment : Fragment() {
             if (it) {
                 showSnackBar(getString(R.string.upload_success))
             } else {
-                showSnackBar(getString(R.string.upload_failed)) { viewModel.retry() }
+                showSnackBar(getString(R.string.upload_failed), Snackbar.LENGTH_INDEFINITE) { viewModel.retry() }
             }
         }
 
@@ -100,8 +100,8 @@ class PreviewFragment : Fragment() {
         DialogHelper.showAlertDialog(requireContext(), title, message)
     }
 
-    private fun showSnackBar(message: String, retryAction: (() -> Unit)? = null) {
-        Snackbar.make(binding.apiVideoView, message, Snackbar.LENGTH_SHORT).apply {
+    private fun showSnackBar(message: String, length: Int = Snackbar.LENGTH_SHORT, retryAction: (() -> Unit)? = null) {
+        Snackbar.make(binding.apiVideoView, message, length).apply {
             retryAction?.let { action ->
                 setAction(R.string.retry) {
                     action()
