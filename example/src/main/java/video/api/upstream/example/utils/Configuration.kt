@@ -36,7 +36,7 @@ class Video(private val sharedPref: SharedPreferences, private val resources: Re
             )
         }
 
-    val bitrate: Int = 2000 * 1024  // to bps
+    val bitrate: Int = 2000
         get() = sharedPref.getInt(
             resources.getString(R.string.video_bitrate_key),
             field

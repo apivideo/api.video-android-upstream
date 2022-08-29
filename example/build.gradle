@@ -45,8 +45,6 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui-ktx:2.5.1'
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'video.api:android-api-client:1.2.0'
-    implementation 'com.github.tbruyelle:rxpermissions:0.12'
-    implementation 'io.reactivex.rxjava3:rxjava:3.0.4' // Due to rxpermissions
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
