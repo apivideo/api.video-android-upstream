@@ -10,7 +10,7 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class UpstreamSession(
-    private val workDir: File,
+    val workDir: File,
     private val uploadService: UploadService,
     private val progressiveSession: UploadService.ProgressiveUploadSession,
     private val sessionListener: SessionListener? = null,
@@ -38,7 +38,7 @@ class UpstreamSession(
 
             part.wasSent = true
             part.file.delete()
-            sessionUploadPartListener?.onComplete(this@UpstreamSession, part.chunkIndex)
+            sessionUploadPartListener?.onComplete(this@UpstreamSession, video, part.chunkIndex)
             if (allPartsSent && hasLastPart) {
                 onEnd()
             }
@@ -96,6 +96,7 @@ class UpstreamSession(
     }
 
     private fun onEnd() {
+        release()
         if (!hasRemainingFiles) {
             deleteAll()
             sessionListener?.onComplete(this@UpstreamSession)
@@ -140,13 +141,17 @@ class UpstreamSession(
 
     fun release() {
         uploadService.removeListener(listener)
-        cancelAll()
     }
 
     fun cancelAll() {
         uploadPartHashMap.keys.forEach {
             uploadService.cancel(it)
         }
+    }
+
+    fun releaseAndCancelAll() {
+        release()
+        cancelAll()
     }
 
     /**
@@ -183,7 +188,7 @@ class UpstreamSession(
     private val numOfRemainingFiles: Int
         get() = workDir.list()?.size ?: 0
 
-    private val hasRemainingFiles: Boolean
+    val hasRemainingFiles: Boolean
         get() = numOfRemainingFiles > 0
 
     companion object {

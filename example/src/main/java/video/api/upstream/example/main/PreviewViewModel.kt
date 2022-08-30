@@ -75,8 +75,12 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             Log.i(TAG, "onNewPartStarted: part: $partId")
         }
 
-        override fun onComplete(session: UpstreamSession, partId: Int) {
-            Log.i(TAG, "onComplete: part: $partId")
+        override fun onComplete(
+            session: UpstreamSession,
+            video: video.api.uploader.api.models.Video,
+            partId: Int
+        ) {
+            Log.i(TAG, "onComplete: part: $partId: ${video.videoId}")
         }
 
         override fun onProgressChanged(session: UpstreamSession, partId: Int, progress: Int) {
