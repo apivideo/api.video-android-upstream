@@ -4,28 +4,69 @@ import android.content.Context
 import video.api.uploader.api.models.Video
 import video.api.uploader.api.services.UploadService
 import video.api.uploader.api.services.UploadServiceListener
-import video.api.upstream.getSessionWorkDir
+import video.api.upstream.getSessionDir
+import video.api.upstream.getSessionPartsDir
 import java.io.File
+import java.security.InvalidParameterException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-class UpstreamSession(
-    val workDir: File,
+class UpstreamSession
+private constructor(
+    context: Context,
+    val id: String,
     private val uploadService: UploadService,
     private val progressiveSession: UploadService.ProgressiveUploadSession,
-    private val sessionListener: SessionListener? = null,
-    private val sessionUploadPartListener: SessionUploadPartListener? = null
+    private val sessionListener: SessionListener?,
+    private val sessionUploadPartListener: SessionUploadPartListener?
 ) {
+    private constructor(
+        context: Context,
+        id: String = UUID.randomUUID().toString(),
+        uploadService: UploadService,
+        videoId: String? = null,
+        token: String? = null,
+        sessionListener: SessionListener? = null,
+        sessionUploadPartListener: SessionUploadPartListener? = null
+    ) : this(
+        context,
+        id = id,
+        uploadService = uploadService,
+        progressiveSession = uploadService.createProgressiveUploadSession(videoId ?: token!!),
+        sessionListener = sessionListener,
+        sessionUploadPartListener = sessionUploadPartListener
+    ) {
+        require((videoId != null) || (token != null)) { "Token or videoId must be set" }
+        videoId?.let {
+            storage.videoId = videoId
+        }
+        token?.let {
+            storage.token = token
+        }
+    }
+
+    private val sessionDir = context.getSessionDir(id)
+    private val partsDir = context.getSessionPartsDir(id)
+
+    private val storage = UpstreamSessionStorage(sessionDir)
     private val uploadPartHashMap = ConcurrentHashMap<String, UploadPart>()
 
-    private var wasCreated = false
-    private var hasStarted = false
+    private var created = false
 
     private val listener = object : UploadServiceListener {
         override fun onLastUpload() {}
 
         override fun onUploadCancelled(id: String) {
-            // Unused
+            try {
+                uploadPartHashMap[id]!!
+            } catch (e: Exception) {
+                // The part is not for this session
+                return
+            }
+
+            if (allPartsSent && hasLastPart) {
+                onEnd()
+            }
         }
 
         override fun onUploadComplete(id: String, video: Video) {
@@ -36,7 +77,11 @@ class UpstreamSession(
                 return
             }
 
-            part.wasSent = true
+            if (storage.videoId == null) {
+                storage.videoId = video.videoId
+            }
+
+            part.sent = true
             part.file.delete()
             sessionUploadPartListener?.onComplete(this@UpstreamSession, video, part.chunkIndex)
             if (allPartsSent && hasLastPart) {
@@ -52,7 +97,7 @@ class UpstreamSession(
                 return
             }
 
-            part.wasSent = true
+            part.sent = true
             sessionUploadPartListener?.onError(this@UpstreamSession, part.chunkIndex, e)
             if (allPartsSent && hasLastPart) {
                 onEnd()
@@ -82,11 +127,6 @@ class UpstreamSession(
                 return
             }
 
-            if (!hasStarted) {
-                hasStarted = true
-                sessionListener?.onSessionStarted(this@UpstreamSession)
-            }
-
             sessionUploadPartListener?.onNewPartStarted(this@UpstreamSession, part.chunkIndex)
         }
     }
@@ -105,25 +145,18 @@ class UpstreamSession(
         }
     }
 
-    internal fun upload(chunkIndex: Int, isLastPart: Boolean, file: File) {
-        if (!wasCreated) {
-            wasCreated = true
+    fun upload(chunkIndex: Int, isLastPart: Boolean, file: File) {
+        if (!created) {
+            created = true
             sessionListener?.onNewSessionCreated(this@UpstreamSession)
         }
 
-        val renamedFile = if (isLastPart) {
-            val lastFile = File(
-                file.parentFile, file.name + ".last"
-            )
-            file.renameTo(lastFile) // rename last file to identify it as last file
-            lastFile
-        } else {
-            file
+        if (isLastPart) {
+            if (storage.lastPartId == null) {
+                storage.lastPartId = chunkIndex
+            }
         }
-        uploadImpl(chunkIndex, isLastPart, renamedFile)
-    }
 
-    private fun uploadImpl(chunkIndex: Int, isLastPart: Boolean, file: File) {
         val uploadId = if (isLastPart) {
             progressiveSession.uploadLastPart(
                 file,
@@ -139,7 +172,7 @@ class UpstreamSession(
         sessionListener?.onTotalNumberOfPartsChanged(this, uploadPartHashMap.size)
     }
 
-    fun release() {
+    private fun release() {
         uploadService.removeListener(listener)
     }
 
@@ -149,35 +182,15 @@ class UpstreamSession(
         }
     }
 
-    fun releaseAndCancelAll() {
-        release()
-        cancelAll()
-    }
-
     /**
      * Deletes remaining parts and [parentDir].
      */
     fun deleteAll() {
-        workDir.deleteRecursively()
-    }
-
-    /**
-     * Retry to upload the parts that has not been uploaded
-     */
-    fun retryUploads() {
-        uploadPartHashMap.clear()
-
-        workDir.listFiles()?.forEach {
-            if (it.name.endsWith(".last")) {
-                uploadImpl(it.name.replace(".last", "").toInt(), true, it)
-            } else {
-                uploadImpl(it.name.toInt(), false, it)
-            }
-        }
+        sessionDir.deleteRecursively()
     }
 
     private val allPartsSent: Boolean
-        get() = uploadPartHashMap.none { !it.value.wasSent }
+        get() = uploadPartHashMap.none { !it.value.sent }
 
     private val hasLastPart: Boolean
         get() = uploadPartHashMap.any { it.value.isLast }
@@ -186,49 +199,102 @@ class UpstreamSession(
         get() = uploadPartHashMap.size
 
     private val numOfRemainingFiles: Int
-        get() = workDir.list()?.size ?: 0
+        get() = partsDir.list()?.size ?: 0
 
-    val hasRemainingFiles: Boolean
+    private val hasRemainingFiles: Boolean
         get() = numOfRemainingFiles > 0
 
     companion object {
-        const val TAG = "UpstreamSession"
+        private const val TAG = "UpstreamSession"
+
+        /**
+         * Creates a session from the session id.
+         * Mostly use for backup session.
+         * Remaining parts will be added to the [UploadService].
+         *
+         * @param context The application context
+         * @param uploadService The upload service
+         * @param sessionId The session id
+         * @param sessionListener The listener of the session events. Could be null.
+         * @param sessionUploadPartListener The listener of the parts events. Could be null.
+         */
+        fun createFromSessionId(
+            context: Context,
+            uploadService: UploadService,
+            sessionId: String,
+            sessionListener: SessionListener? = null,
+            sessionUploadPartListener: SessionUploadPartListener? = null
+        ): UpstreamSession {
+            if (!context.getSessionDir(sessionId).exists()) {
+                throw InvalidParameterException("Unknown session")
+            }
+            if (!hasRemainingFiles(context, sessionId)) {
+                throw InvalidParameterException("Session has no more file to upload")
+            }
+
+            val storage = UpstreamSessionStorage(context.getSessionDir(sessionId))
+            val videoId = storage.videoId
+            val token = storage.token
+            val lastId = storage.lastPartId
+                ?: throw UnsupportedOperationException("Session must have a lastId")
+
+            val upstreamSession = UpstreamSession(
+                context,
+                sessionId,
+                uploadService,
+                videoId,
+                token,
+                sessionListener,
+                sessionUploadPartListener
+            )
+
+            context.getSessionPartsDir(sessionId).listFiles()?.forEach {
+                val partId = it.name.toInt()
+                if (partId == lastId) {
+                    upstreamSession.upload(partId, true, it)
+                } else {
+                    upstreamSession.upload(partId, false, it)
+                }
+            }
+
+            return upstreamSession
+        }
 
         fun createForVideoId(
-            workDir: File,
+            context: Context,
             uploadService: UploadService,
             videoId: String,
             sessionListener: SessionListener? = null,
             sessionUploadPartListener: SessionUploadPartListener? = null
-        ): UpstreamSession =
-            UpstreamSession(
-                workDir,
-                uploadService,
-                uploadService.createProgressiveUploadSession(videoId),
-                sessionListener,
-                sessionUploadPartListener
-            )
+        ) = UpstreamSession(
+            context,
+            uploadService = uploadService,
+            videoId = videoId,
+            token = null,
+            sessionListener = sessionListener,
+            sessionUploadPartListener = sessionUploadPartListener
+        )
 
         fun createForUploadToken(
-            workDir: File,
+            context: Context,
             uploadService: UploadService,
             token: String,
             sessionListener: SessionListener? = null,
             sessionUploadPartListener: SessionUploadPartListener? = null
-        ) =
-            UpstreamSession(
-                workDir,
-                uploadService,
-                uploadService.createUploadTokenProgressiveUploadSession(token),
-                sessionListener,
-                sessionUploadPartListener
-            )
+        ) = UpstreamSession(
+            context,
+            uploadService = uploadService,
+            videoId = null,
+            token = token,
+            sessionListener = sessionListener,
+            sessionUploadPartListener = sessionUploadPartListener
+        )
 
-        fun numOfRemainingFiles(context: Context, folderName: String) =
-            context.getSessionWorkDir(folderName).list()?.size ?: 0
+        fun numOfRemainingFiles(context: Context, sessionId: String) =
+            context.getSessionDir(sessionId).list()?.size ?: 0
 
-        fun hasRemainingFiles(context: Context, folderName: String) =
-            numOfRemainingFiles(context, folderName) > 0
+        fun hasRemainingFiles(context: Context, sessionId: String) =
+            numOfRemainingFiles(context, sessionId) > 0
     }
 }
 

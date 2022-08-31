@@ -141,7 +141,9 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
     fun retry() {
         try {
-            lastUpstreamSession?.retryUploads()
+            lastUpstreamSession?.let {
+                upstream.createBackupSessionFromSessionId(it.id)
+            }
         } catch (e: Exception) {
             error.postValue(e.message)
         }

@@ -15,7 +15,6 @@ interface SessionUploadPartListener {
 
 interface SessionListener {
     fun onNewSessionCreated(session: UpstreamSession) {}
-    fun onSessionStarted(session: UpstreamSession) {}
     fun onTotalNumberOfPartsChanged(session: UpstreamSession, totalNumberOfParts: Int) {}
     fun onComplete(session: UpstreamSession) {}
     fun onEndWithError(session: UpstreamSession) {}

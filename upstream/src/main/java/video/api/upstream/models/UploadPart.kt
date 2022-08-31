@@ -6,5 +6,5 @@ data class UploadPart(
     val chunkIndex: Int,
     val isLast: Boolean,
     val file: File,
-    var wasSent: Boolean = false
+    var sent: Boolean = false
 )
