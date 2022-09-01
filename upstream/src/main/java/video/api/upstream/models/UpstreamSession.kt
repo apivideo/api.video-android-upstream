@@ -12,6 +12,16 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class UpstreamSession
+/**
+ * Manages the upload of a video parts.
+ * An [UpstreamSession] uploads one video only. A video is composed of multiple parts.
+ *
+ * @param context The application context
+ * @param id The unique session id
+ * @param uploadService The upload service
+ * @param sessionListener The listener for one full video
+ * @param sessionUploadPartListener The listener for a part of a video
+ */
 private constructor(
     context: Context,
     val id: String,
@@ -83,7 +93,7 @@ private constructor(
 
             part.sent = true
             part.file.delete()
-            sessionUploadPartListener?.onComplete(this@UpstreamSession, video, part.chunkIndex)
+            sessionUploadPartListener?.onComplete(this@UpstreamSession, part.chunkIndex, video)
             if (allPartsSent && hasLastPart) {
                 onEnd()
             }
@@ -137,7 +147,7 @@ private constructor(
 
     private fun onEnd() {
         release()
-        if (!hasRemainingFiles) {
+        if (!hasRemainingParts) {
             deleteAll()
             sessionListener?.onComplete(this@UpstreamSession)
         } else {
@@ -145,7 +155,7 @@ private constructor(
         }
     }
 
-    fun upload(chunkIndex: Int, isLastPart: Boolean, file: File) {
+    internal fun upload(chunkIndex: Int, isLastPart: Boolean, file: File) {
         if (!created) {
             created = true
             sessionListener?.onNewSessionCreated(this@UpstreamSession)
@@ -169,13 +179,16 @@ private constructor(
             )
         }
         uploadPartHashMap[uploadId] = UploadPart(chunkIndex, isLastPart, file)
-        sessionListener?.onTotalNumberOfPartsChanged(this, uploadPartHashMap.size)
+        sessionListener?.onNumberOfPartsChanged(this, numOfParts)
     }
 
     private fun release() {
         uploadService.removeListener(listener)
     }
 
+    /**
+     * Cancel all uploads of this session.
+     */
     fun cancelAll() {
         uploadPartHashMap.keys.forEach {
             uploadService.cancel(it)
@@ -195,14 +208,24 @@ private constructor(
     private val hasLastPart: Boolean
         get() = uploadPartHashMap.any { it.value.isLast }
 
+    /**
+     * Total number of parts for the video.
+     * The number of parts increases when parts are still been generated.
+     */
     val numOfParts: Int
-        get() = uploadPartHashMap.size
+        get() = storage.lastPartId ?: uploadPartHashMap.size
 
-    private val numOfRemainingFiles: Int
+    /**
+     * Number of parts that haven't been send yet.
+     */
+    val numOfRemainingParts: Int
         get() = partsDir.list()?.size ?: 0
 
-    private val hasRemainingFiles: Boolean
-        get() = numOfRemainingFiles > 0
+    /**
+     * Check if there are still remaining parts
+     */
+    val hasRemainingParts: Boolean
+        get() = numOfRemainingParts > 0
 
     companion object {
         private const val TAG = "UpstreamSession"
@@ -228,7 +251,7 @@ private constructor(
             if (!context.getSessionDir(sessionId).exists()) {
                 throw InvalidParameterException("Unknown session")
             }
-            if (!hasRemainingFiles(context, sessionId)) {
+            if (!hasRemainingParts(context, sessionId)) {
                 throw InvalidParameterException("Session has no more file to upload")
             }
 
@@ -260,7 +283,7 @@ private constructor(
             return upstreamSession
         }
 
-        fun createForVideoId(
+        internal fun createForVideoId(
             context: Context,
             uploadService: UploadService,
             videoId: String,
@@ -275,7 +298,7 @@ private constructor(
             sessionUploadPartListener = sessionUploadPartListener
         )
 
-        fun createForUploadToken(
+        internal fun createForUploadToken(
             context: Context,
             uploadService: UploadService,
             token: String,
@@ -290,11 +313,11 @@ private constructor(
             sessionUploadPartListener = sessionUploadPartListener
         )
 
-        fun numOfRemainingFiles(context: Context, sessionId: String) =
+        fun numOfRemainingParts(context: Context, sessionId: String) =
             context.getSessionDir(sessionId).list()?.size ?: 0
 
-        fun hasRemainingFiles(context: Context, sessionId: String) =
-            numOfRemainingFiles(context, sessionId) > 0
+        fun hasRemainingParts(context: Context, sessionId: String) =
+            numOfRemainingParts(context, sessionId) > 0
     }
 }
 

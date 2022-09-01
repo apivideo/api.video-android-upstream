@@ -24,8 +24,33 @@ import java.io.File
 
 class ApiVideoUpstream
 /**
+ * Main API class.
+ * A audio and video streamer capture the microphone and the camera stream and generates parts of
+ * video. These parts are then uploaded by the [UploadService].
+ *
+ * Internally it uses a Service called [UploadService]. So as every service, it requires specific
+ * declaration:
+ * To add a service in your application you need to add in your `AndroidManifest.xml`:
+ *  <application>
+ *     <service android:name=".services.UploadService" />
+ *     ...
+ *  </application>
+ *
+ * and adds the `android.permission.FOREGROUND_SERVICE` permission to your `AndroidManifest.xml`:
+ *  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+ *
+ * You might want to extent this service to customize notification icon, colors, messages.
+ *
  * @param context The application context
+ * @param uploadService The upload service (could be a child class of [UploadService])
  * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
+ * @param initialAudioConfig initial audio configuration. Could be change later with [audioConfig] field.
+ * @param initialVideoConfig initial video configuration. Could be change later with [videoConfig] field.
+ * @param initialCamera initial camera. Could be change later with [camera] field.
+ * @param apiVideoView where to display preview. Could be null if you don't have a preview.
+ * @param sessionListener The listener for one full video
+ * @param sessionUploadPartListener The listener for a part of a video
+ * @param streamerListener The listener for the streamer
  */
 @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
 constructor(
@@ -90,58 +115,6 @@ constructor(
 
     private var upstreamerSession: UpstreamSession? = null
 
-    var token: String? = null
-        set(value) {
-            if (isStreaming) {
-                throw UnsupportedOperationException("You have to stop streaming first")
-            }
-
-            value?.let {
-                upstreamerSession = UpstreamSession.createForUploadToken(
-                    context,
-                    uploadService,
-                    it,
-                    sessionListener,
-                    sessionUploadPartListener
-                ).apply {
-                    streamer.outputStream =
-                        ChunkedFileOutputStream(
-                            context.getSessionPartsDir(id),
-                            partSize,
-                            onChunkListener
-                        )
-                }
-
-                field = value
-            }
-        }
-
-    var videoId: String? = null
-        set(value) {
-            if (isStreaming) {
-                throw UnsupportedOperationException("You have to stop streaming first")
-            }
-
-            value?.let {
-                upstreamerSession = UpstreamSession.createForVideoId(
-                    context,
-                    uploadService,
-                    it,
-                    sessionListener,
-                    sessionUploadPartListener
-                ).apply {
-                    streamer.outputStream =
-                        ChunkedFileOutputStream(
-                            context.getSessionPartsDir(id),
-                            partSize,
-                            onChunkListener
-                        )
-                }
-
-                field = value
-            }
-        }
-
     /**
      * Hack for private setter of [isStreaming].
      */
@@ -167,7 +140,6 @@ constructor(
         override fun onError(error: StreamPackError) {
             _isStreaming = false
             Log.e(TAG, "An error in streamer happened", error)
-            upstreamerSession!!.cancelAll()
             streamerListener?.onError(error)
         }
     }
@@ -273,6 +245,14 @@ constructor(
         }
     }
 
+    /**
+     * Starts camera preview of [camera].
+     *
+     * The surface provided in the constructor already manages [startPreview] and [stopPreview].
+     * Use this method only if you need to explicitly start preview.
+     *
+     * @see [stopPreview]
+     */
     @RequiresPermission(allOf = [Manifest.permission.CAMERA])
     fun startPreview() {
         // Selects appropriate preview size and configures view finder
@@ -299,26 +279,96 @@ constructor(
         }
     }
 
+    /**
+     * Stops camera preview.
+     *
+     * The surface provided in the constructor already manages [startPreview] and [stopPreview].
+     * Use this method only if you need to explicitly stop preview.
+     *
+     * @see [startPreview]
+     */
     fun stopPreview() {
         streamer.stopPreview()
     }
 
-    fun startStreaming() {
-        require(upstreamerSession != null) { "Set video id or token before" }
+    /**
+     * Starts the upstream process for an upload token
+     *
+     * @param token The upload token
+     * @see stopStreaming
+     */
+    fun startStreamingForToken(token: String) {
+        upstreamerSession = UpstreamSession.createForUploadToken(
+            context,
+            uploadService,
+            token,
+            sessionListener,
+            sessionUploadPartListener
+        ).apply {
+            streamer.outputStream =
+                ChunkedFileOutputStream(
+                    context.getSessionPartsDir(id),
+                    partSize,
+                    onChunkListener
+                )
+        }
 
         streamer.startStream()
         _isStreaming = true
     }
 
+    /**
+     * Starts the upstream process for a video id
+     *
+     * @param videoId The video id
+     * @see stopStreaming
+     */
+    fun startStreamingForVideoId(videoId: String) {
+        upstreamerSession = UpstreamSession.createForVideoId(
+            context,
+            uploadService,
+            videoId,
+            sessionListener,
+            sessionUploadPartListener
+        ).apply {
+            streamer.outputStream =
+                ChunkedFileOutputStream(
+                    context.getSessionPartsDir(id),
+                    partSize,
+                    onChunkListener
+                )
+        }
+
+        streamer.startStream()
+        _isStreaming = true
+    }
+
+    /**
+     * Starts the upstream process
+     *
+     * The [UploadService] will continue to send the generated parts.
+     *
+     * You won't be able to use this instance after calling this method.
+     *
+     * @see startStreaming
+     */
     fun stopStreaming() {
         streamer.stopStream()
         _isStreaming = false
     }
 
+    /**
+     * Release internal elements.
+     *
+     * You won't be able to use this instance after calling this method.
+     */
     fun release() {
         streamer.release()
     }
 
+    /**
+     * Same as [release] and cancel all the upload
+     */
     fun releaseAndCancelAll() {
         release()
         uploadService.cancelAll()
@@ -329,7 +379,7 @@ constructor(
      *
      * Remaining files will be automatically add to the queue of the [UploadService].
      *
-     * @param sessionId The session id
+     * @param sessionId The session id. It is the id of [UpstreamSession.id].
      * @see getSessionIdList
      * @see getSessionId
      */
@@ -400,8 +450,25 @@ constructor(
             UpstreamSessionStorage.getVideoId(context.getSessionDir(sessionId))
 
         /**
-         * Build the [ApiVideoUpstream].
-         * Internally, it starts and binds an [UploadService].
+         * Starts and binds the [UploadService]. When the [UploadService] is created, it returns the
+         * [ApiVideoUpstream] instance.
+         *
+         * @param context The application context
+         * @param serviceClass The class of the service to start. Must be a child of [UploadService]
+         * @param apiKey The API key if you want to upload with video id
+         * @param environment The targeted environment
+         * @param timeout The API timeout in milliseconds
+         * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
+         * @param initialAudioConfig initial audio configuration. Could be change later with [audioConfig] field
+         * @param initialVideoConfig initial video configuration. Could be change later with [videoConfig] field
+         * @param initialCamera initial camera. Could be change later with [camera] field
+         * @param apiVideoView where to display preview. Could be null if you don't have a preview
+         * @param sessionListener The listener for one full video
+         * @param sessionUploadPartListener The listener for a part of a video
+         * @param streamerListener The listener for the streamer
+         * @param onUpstreamSession The callback that returns the [ApiVideoUpstream] instance
+         * @param onServiceDisconnected Called when service has been disconnected
+         * @return the service connection to unbind the service
          *
          * @see unbindService
          */
@@ -451,6 +518,14 @@ constructor(
             )
         }
 
+        /**
+         * Unbinds the [UploadService].
+         *
+         * Unbinds the device when your application is destroyed.
+         *
+         * @param context The application context
+         * @param serviceConnection The service connection returned by [create]
+         */
         fun unbindService(
             context: Context,
             serviceConnection: ServiceConnection

@@ -44,12 +44,12 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             newSession.postValue(session)
         }
 
-        override fun onTotalNumberOfPartsChanged(
+        override fun onNumberOfPartsChanged(
             session: UpstreamSession,
-            totalNumberOfParts: Int
+            numOfParts: Int
         ) {
-            Log.i(TAG, "onTotalNumberOfPartsChanged: $totalNumberOfParts")
-            numOfParts.postValue(SessionParts(session, totalNumberOfParts))
+            Log.i(TAG, "onTotalNumberOfPartsChanged: $numOfParts")
+            this@PreviewViewModel.numOfParts.postValue(SessionParts(session, numOfParts))
         }
 
         override fun onEndWithError(session: UpstreamSession) {
@@ -77,8 +77,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
         override fun onComplete(
             session: UpstreamSession,
-            video: video.api.uploader.api.models.Video,
-            partId: Int
+            partId: Int,
+            video: video.api.uploader.api.models.Video
         ) {
             Log.i(TAG, "onComplete: part: $partId: ${video.videoId}")
         }
@@ -124,7 +124,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             environment = configuration.apiEndpoint.environment,
             apiKey = apiKey,
             timeout = 60000, // 1 min
-            partSize = ApiClient.DEFAULT_CHUNK_SIZE,
+            partSize = ApiClient.MIN_CHUNK_SIZE,
             initialAudioConfig = audioConfig,
             initialVideoConfig = videoConfig,
             apiVideoView = apiVideoView,
@@ -149,63 +149,61 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun createNewUpstreamSession(onNewSessionCreated: () -> Unit) {
-        if (configuration.apiEndpoint.useApiKey) {
-            /**
-             *  Create new video Id
-             *  Use `createAsync` to avoid calling network on main thread
-             */
-            VideosApi(
-                ApiClient(
-                    configuration.apiEndpoint.apiKey,
-                    configuration.apiEndpoint.environment.basePath
-                )
-            ).createAsync(VideoCreationPayload().apply { title = "upstream Video" },
-                object : ApiCallback<Video> {
-                    override fun onFailure(
-                        e: ApiException?,
-                        statusCode: Int,
-                        responseHeaders: MutableMap<String, MutableList<String>>?
-                    ) {
-                        message.postValue(e?.message ?: "Unknown error")
-                    }
-
-                    override fun onSuccess(
-                        result: Video?,
-                        statusCode: Int,
-                        responseHeaders: MutableMap<String, MutableList<String>>?
-                    ) {
-                        upstream.videoId = result!!.videoId
-                        onNewSessionCreated()
-                    }
-
-                    override fun onUploadProgress(
-                        bytesWritten: Long,
-                        contentLength: Long,
-                        done: Boolean
-                    ) {
-                        // Nothing to do
-                    }
-
-                    override fun onDownloadProgress(
-                        bytesRead: Long,
-                        contentLength: Long,
-                        done: Boolean
-                    ) {
-                        // Nothing to do
-                    }
-                }
+    private fun createNewVideoId(onNewVideoId: (String) -> Unit) {
+        /**
+         *  Create new video Id
+         *  Use `createAsync` to avoid calling network on main thread
+         */
+        VideosApi(
+            ApiClient(
+                configuration.apiEndpoint.apiKey,
+                configuration.apiEndpoint.environment.basePath
             )
-        } else {
-            upstream.token = configuration.apiEndpoint.uploadToken
-            onNewSessionCreated()
-        }
+        ).createAsync(VideoCreationPayload().apply { title = "upstream Video" },
+            object : ApiCallback<Video> {
+                override fun onFailure(
+                    e: ApiException?,
+                    statusCode: Int,
+                    responseHeaders: MutableMap<String, MutableList<String>>?
+                ) {
+                    message.postValue(e?.message ?: "Unknown error")
+                }
+
+                override fun onSuccess(
+                    result: Video?,
+                    statusCode: Int,
+                    responseHeaders: MutableMap<String, MutableList<String>>?
+                ) {
+                    onNewVideoId(result!!.videoId)
+                }
+
+                override fun onUploadProgress(
+                    bytesWritten: Long,
+                    contentLength: Long,
+                    done: Boolean
+                ) {
+                    // Nothing to do
+                }
+
+                override fun onDownloadProgress(
+                    bytesRead: Long,
+                    contentLength: Long,
+                    done: Boolean
+                ) {
+                    // Nothing to do
+                }
+            }
+        )
     }
 
     fun startStream() {
         try {
-            createNewUpstreamSession {
-                upstream.startStreaming()
+            if (configuration.apiEndpoint.useApiKey) {
+                createNewVideoId { videoId ->
+                    upstream.startStreamingForVideoId(videoId)
+                }
+            } else {
+                upstream.startStreamingForToken(configuration.apiEndpoint.uploadToken)
             }
         } catch (e: Exception) {
             error.postValue(e.message)
