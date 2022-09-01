@@ -226,28 +226,7 @@ constructor(
          */
         @SuppressLint("MissingPermission")
         override fun surfaceCreated(holder: SurfaceHolder) {
-            // Selects appropriate preview size and configures view finder
-            streamer.camera.let {
-                val previewSize = getPreviewOutputSize(
-                    apiVideoView.display,
-                    context.getCameraCharacteristics(it),
-                    SurfaceHolder::class.java
-                )
-                Log.d(
-                    TAG,
-                    "View finder size: ${apiVideoView.width} x ${apiVideoView.height}"
-                )
-                Log.d(TAG, "Selected preview size: $previewSize")
-                apiVideoView.setAspectRatio(previewSize.width, previewSize.height)
-
-                // To ensure that size is set, initialize camera in the view's thread
-                apiVideoView.post {
-                    streamer.startPreview(
-                        apiVideoView.holder.surface,
-                        initialCamera.toCameraId(context)
-                    )
-                }
-            }
+            startPreview()
         }
 
         /**
@@ -296,7 +275,28 @@ constructor(
 
     @RequiresPermission(allOf = [Manifest.permission.CAMERA])
     fun startPreview() {
-        streamer.startPreview(apiVideoView.holder.surface)
+        // Selects appropriate preview size and configures view finder
+        streamer.camera.let {
+            val previewSize = getPreviewOutputSize(
+                apiVideoView.display,
+                context.getCameraCharacteristics(it),
+                SurfaceHolder::class.java
+            )
+            Log.d(
+                TAG,
+                "View finder size: ${apiVideoView.width} x ${apiVideoView.height}"
+            )
+            Log.d(TAG, "Selected preview size: $previewSize")
+            apiVideoView.setAspectRatio(previewSize.width, previewSize.height)
+
+            // To ensure that size is set, initialize camera in the view's thread
+            apiVideoView.post {
+                streamer.startPreview(
+                    apiVideoView.holder.surface,
+                    it
+                )
+            }
+        }
     }
 
     fun stopPreview() {
