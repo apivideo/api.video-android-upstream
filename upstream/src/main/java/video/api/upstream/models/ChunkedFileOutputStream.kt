@@ -56,7 +56,7 @@ class ChunkedFileOutputStream(
 
     override fun close() {
         outputStream.close()
-        if (!isClosed) {
+        if (!isClosed && hasWritten) {
             onChunkListener.onChunkReady(chunkPartIndex, true, currentFile)
         }
         isClosed = true
