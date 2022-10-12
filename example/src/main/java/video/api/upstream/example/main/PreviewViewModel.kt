@@ -121,13 +121,13 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
         serviceConnection = ApiVideoUpstream.create(
             context = getApplication(),
+            apiVideoView = apiVideoView,
             environment = configuration.apiEndpoint.environment,
             apiKey = apiKey,
             timeout = 60000, // 1 min
             partSize = ApiClient.MIN_CHUNK_SIZE,
             initialAudioConfig = audioConfig,
             initialVideoConfig = videoConfig,
-            apiVideoView = apiVideoView,
             sessionListener = sessionListener,
             sessionUploadPartListener = sessionUploadPartListener,
             streamerListener = streamerListener,

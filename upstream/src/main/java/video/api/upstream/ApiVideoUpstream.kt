@@ -43,28 +43,32 @@ class ApiVideoUpstream
  *
  * @param context The application context
  * @param uploadService The upload service (could be a child class of [UploadService])
+ * @param apiVideoView where to display preview. Could be null if you don't have a preview.
  * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
  * @param initialAudioConfig initial audio configuration. Could be change later with [audioConfig] field.
  * @param initialVideoConfig initial video configuration. Could be change later with [videoConfig] field.
  * @param initialCamera initial camera. Could be change later with [camera] field.
- * @param apiVideoView where to display preview. Could be null if you don't have a preview.
- * @param sessionListener The listener for one full video
- * @param sessionUploadPartListener The listener for a part of a video
+ * @param initialSessionListener The listener for one full video
+ * @param initialSessionUploadPartListener The listener for a part of a video
  * @param streamerListener The listener for the streamer
  */
 @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
 constructor(
     private val context: Context,
     private val uploadService: UploadService,
+    private val apiVideoView: ApiVideoView,
     private val partSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
     initialAudioConfig: AudioConfig?,
     initialVideoConfig: VideoConfig?,
     initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-    private val apiVideoView: ApiVideoView,
-    private val sessionListener: SessionListener? = null,
-    private val sessionUploadPartListener: SessionUploadPartListener? = null,
+    initialSessionListener: SessionListener? = null,
+    initialSessionUploadPartListener: SessionUploadPartListener? = null,
     private val streamerListener: StreamerListener? = null,
 ) {
+    var sessionListener: SessionListener? = initialSessionListener
+    var sessionUploadPartListener: SessionUploadPartListener? =
+        initialSessionUploadPartListener
+
     /**
      * Set/get audio configuration once you have created the a [ApiVideoUpstream] instance.
      */
@@ -107,7 +111,7 @@ constructor(
                 try {
                     startPreview()
                 } catch (e: UnsupportedOperationException) {
-                    Log.w(TAG, "${e.message}", e)
+                    Log.i(TAG, "Can't start preview: ${e.message}")
                 }
             }
             field = value
@@ -240,7 +244,7 @@ constructor(
             try {
                 startPreview()
             } catch (e: Exception) {
-                Log.i(TAG, "Failed to start preview. Surface might not be created yet", e)
+                Log.i(TAG, "Can't start preview in constructor: ${e.message}")
             }
         }
     }
@@ -255,6 +259,9 @@ constructor(
      */
     @RequiresPermission(allOf = [Manifest.permission.CAMERA])
     fun startPreview() {
+        if (apiVideoView.display == null) {
+            throw UnsupportedOperationException("display is null")
+        }
         // Selects appropriate preview size and configures view finder
         streamer.camera.let {
             val previewSize = getPreviewOutputSize(
@@ -454,6 +461,7 @@ constructor(
          * [ApiVideoUpstream] instance.
          *
          * @param context The application context
+         * @param apiVideoView where to display preview. Could be null if you don't have a preview
          * @param serviceClass The class of the service to start. Must be a child of [UploadService]
          * @param apiKey The API key if you want to upload with video id
          * @param environment The targeted environment
@@ -462,7 +470,6 @@ constructor(
          * @param initialAudioConfig initial audio configuration. Could be change later with [audioConfig] field
          * @param initialVideoConfig initial video configuration. Could be change later with [videoConfig] field
          * @param initialCamera initial camera. Could be change later with [camera] field
-         * @param apiVideoView where to display preview. Could be null if you don't have a preview
          * @param sessionListener The listener for one full video
          * @param sessionUploadPartListener The listener for a part of a video
          * @param streamerListener The listener for the streamer
@@ -475,6 +482,7 @@ constructor(
         @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
         fun create(
             context: Context,
+            apiVideoView: ApiVideoView,
             serviceClass: Class<out UploadService> = UploadService::class.java,
             apiKey: String? = null,
             environment: Environment = Environment.PRODUCTION,
@@ -483,7 +491,6 @@ constructor(
             initialAudioConfig: AudioConfig? = null,
             initialVideoConfig: VideoConfig? = null,
             initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-            apiVideoView: ApiVideoView,
             sessionListener: SessionListener? = null,
             sessionUploadPartListener: SessionUploadPartListener? = null,
             streamerListener: StreamerListener? = null,
@@ -501,11 +508,11 @@ constructor(
                         ApiVideoUpstream(
                             context,
                             service,
+                            apiVideoView,
                             partSize,
                             initialAudioConfig,
                             initialVideoConfig,
                             initialCamera,
-                            apiVideoView,
                             sessionListener,
                             sessionUploadPartListener,
                             streamerListener
