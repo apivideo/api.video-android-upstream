@@ -2,7 +2,7 @@
 
 All changes to this project will be documented in this file.
 
-## [1.0.0] - 2022-09-30
+## [1.0.0] - 2022-10-13
 
 - Initial version
 
