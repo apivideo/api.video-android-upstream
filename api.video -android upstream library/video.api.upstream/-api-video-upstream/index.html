@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ApiVideoUpstream</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+const savedDarkMode = storage ? JSON.parse(storage) : false
+if(savedDarkMode === true){
+    document.getElementsByTagName("html")[0].classList.add("theme-dark")
+}</script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/jetbrains-mono.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<link href="../../../images/docs_logo.svg">
+<link href="../../../images/logo-icon.svg">
+</head>
+<body>
+<div class="navigation-wrapper" id="navigation-wrapper">
+    <div id="leftToggler"><span class="icon-toggler"></span></div>
+    <div class="library-name">
+            <a href="../../../index.html">
+                    <span>api.video Android upstream library</span>
+            </a>
+    </div>
+    <div>
+    </div>
+    <div class="pull-right d-flex">
+        <button id="theme-toggle-button"><span id="theme-toggle"></span></button>
+        <div id="searchBar"></div>
+    </div>
+</div>
+<div id="container">
+    <div id="leftColumn">
+        <div id="sideMenu"></div>
+    </div>
+    <div id="main">
+<div class="main-content" id="content" pageIds="api.video Android upstream library::video.api.upstream/ApiVideoUpstream///PointingToDeclaration//349389453">
+  <div class="breadcrumbs"><a href="../../../index.html">api.video Android upstream library</a><span class="delimiter">/</span><a href="../index.html">video.api.upstream</a><span class="delimiter">/</span><a href="index.html">ApiVideoUpstream</a></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Api</span><wbr></wbr><span>Video</span><wbr></wbr><span><span>Upstream</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">ApiVideoUpstream</a> <span><span class="token annotation">@</span><a href="https://developer.android.com/reference/kotlin/androidx/annotation/RequiresPermission.html"><span class="token annotation">RequiresPermission</span></a><span class="token punctuation">(</span><span>allOf<span class="token operator"> = </span><span class="token punctuation">[</span><span><span class="breakable-word"><span class="token string">&quot;android.permission.RECORD_AUDIO&quot;</span></span><span class="token punctuation">, </span></span><wbr></wbr><span><span class="breakable-word"><span class="token string">&quot;android.permission.CAMERA&quot;</span></span></span><wbr></wbr><span class="token punctuation">]</span></span><wbr></wbr><span class="token punctuation">)</span> </span><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters wrapped"><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;uploadService<span class="token operator">: </span><span data-unresolved-link="video.api.uploader.api.services/UploadService///PointingToDeclaration/">UploadService</span><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;apiVideoView<span class="token operator">: </span><a href="../../video.api.upstream.views/-api-video-view/index.html">ApiVideoView</a><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;partSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span>ApiClient.DEFAULT_CHUNK_SIZE<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialAudioConfig<span class="token operator">: </span><a href="../../video.api.upstream.models/-audio-config/index.html">AudioConfig</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialVideoConfig<span class="token operator">: </span><a href="../../video.api.upstream.models/-video-config/index.html">VideoConfig</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialCamera<span class="token operator">: </span><a href="../../video.api.upstream.enums/-camera-facing-direction/index.html">CameraFacingDirection</a><span class="token operator"> = </span>CameraFacingDirection.BACK<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialSessionListener<span class="token operator">: </span><a href="../../video.api.upstream.models/-session-listener/index.html">SessionListener</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialSessionUploadPartListener<span class="token operator">: </span><a href="../../video.api.upstream.models/-session-upload-part-listener/index.html">SessionUploadPartListener</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;streamerListener<span class="token operator">: </span><a href="../../video.api.upstream.models/-streamer-listener/index.html">StreamerListener</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Main API class. A audio and video streamer capture the microphone and the camera stream and generates parts of video. These parts are then uploaded by the <span data-unresolved-link="video.api.uploader.api.services/UploadService///PointingToDeclaration/">UploadService</span>.</p><p class="paragraph">Internally it uses a Service called <span data-unresolved-link="video.api.uploader.api.services/UploadService///PointingToDeclaration/">UploadService</span>. So as every service, it requires specific declaration: To add a service in your application you need to add in your <code class="lang-kotlin">AndroidManifest.xml</code>: <application><service android:name=".services.UploadService" />     ... </application></p><p class="paragraph">and adds the <code class="lang-kotlin">android.permission.FOREGROUND_SERVICE</code> permission to your <code class="lang-kotlin">AndroidManifest.xml</code>: </p><p class="paragraph">You might want to extent this service to customize notification icon, colors, messages.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="Types">Types</button><button class="section-tab" data-togglable="Constructors">Constructors</button><button class="section-tab" data-togglable="Functions">Functions</button><button class="section-tab" data-togglable="Properties">Properties</button><button class="section-tab" data-togglable="Parameters">Parameters</button></div>
+    <div class="tabs-section-body">
+      <h2 class="">Parameters</h2>
+      <div data-togglable="Parameters">
+        <div class="platform-hinted WithExtraAttributes" data-platform-hinted="data-platform-hinted" data-togglable="Parameters"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div data-togglable="Parameters"><div class="table" data-togglable="Parameters"><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span><span>context</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">The application context</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>upload</span><wbr></wbr><span><span>Service</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">The upload service (could be a child class of <span data-unresolved-link="video.api.uploader.api.services/UploadService///PointingToDeclaration/">UploadService</span>)</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>api</span><wbr></wbr><span>Video</span><wbr></wbr><span><span>View</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">where to display preview. Could be null if you don't have a preview.</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>part</span><wbr></wbr><span><span>Size</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>initial</span><wbr></wbr><span>Audio</span><wbr></wbr><span><span>Config</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">initial audio configuration. Could be change later with <a href="audio-config.html">audioConfig</a> field.</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>initial</span><wbr></wbr><span>Video</span><wbr></wbr><span><span>Config</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">initial video configuration. Could be change later with <a href="video-config.html">videoConfig</a> field.</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>initial</span><wbr></wbr><span><span>Camera</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">initial camera. Could be change later with <a href="camera.html">camera</a> field.</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>initial</span><wbr></wbr><span>Session</span><wbr></wbr><span><span>Listener</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">The listener for one full video</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>initial</span><wbr></wbr><span>Session</span><wbr></wbr><span>Upload</span><wbr></wbr><span>Part</span><wbr></wbr><span><span>Listener</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">The listener for a part of a video</p></div></div></div></div></div><div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release"><div class="main-subrow keyValue WithExtraAttributes"><div class=""><span class="inline-flex"><div><span>streamer</span><wbr></wbr><span><span>Listener</span></span></div></span></div><div><div class="title"><div data-togglable="Parameters"><p class="paragraph">The listener for the streamer</p></div></div></div></div></div></div></div></div></div>
+      </div>
+      <h2 class="tabbedcontent">Constructors</h2>
+      <div class="table" data-togglable="Constructors"><a data-name="1231887146%2FConstructors%2F349389453" anchor-label="ApiVideoUpstream" id="1231887146%2FConstructors%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue TabbedContent">
+            <div class=""><span class="inline-flex">
+                <div><a href="-api-video-upstream.html"><span>Api</span><wbr></wbr><span>Video</span><wbr></wbr><span><span>Upstream</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1231887146%2FConstructors%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation">@</span><a href="https://developer.android.com/reference/kotlin/androidx/annotation/RequiresPermission.html"><span class="token annotation">RequiresPermission</span></a><span class="token punctuation">(</span><span>allOf<span class="token operator"> = </span><span class="token punctuation">[</span><span><span class="breakable-word"><span class="token string">&quot;android.permission.RECORD_AUDIO&quot;</span></span><span class="token punctuation">, </span></span><wbr></wbr><span><span class="breakable-word"><span class="token string">&quot;android.permission.CAMERA&quot;</span></span></span><wbr></wbr><span class="token punctuation">]</span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword"></span><span class="token keyword">fun </span><a href="-api-video-upstream.html"><span class="token function">ApiVideoUpstream</span></a><span class="token punctuation">(</span><span class="parameters wrapped"><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;uploadService<span class="token operator">: </span><span data-unresolved-link="video.api.uploader.api.services/UploadService///PointingToDeclaration/">UploadService</span><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;apiVideoView<span class="token operator">: </span><a href="../../video.api.upstream.views/-api-video-view/index.html">ApiVideoView</a><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;partSize<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span>ApiClient.DEFAULT_CHUNK_SIZE<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialAudioConfig<span class="token operator">: </span><a href="../../video.api.upstream.models/-audio-config/index.html">AudioConfig</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialVideoConfig<span class="token operator">: </span><a href="../../video.api.upstream.models/-video-config/index.html">VideoConfig</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialCamera<span class="token operator">: </span><a href="../../video.api.upstream.enums/-camera-facing-direction/index.html">CameraFacingDirection</a><span class="token operator"> = </span>CameraFacingDirection.BACK<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialSessionListener<span class="token operator">: </span><a href="../../video.api.upstream.models/-session-listener/index.html">SessionListener</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;initialSessionUploadPartListener<span class="token operator">: </span><a href="../../video.api.upstream.models/-session-upload-part-listener/index.html">SessionUploadPartListener</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter indented">&nbsp;&nbsp;&nbsp;&nbsp;streamerListener<span class="token operator">: </span><a href="../../video.api.upstream.models/-streamer-listener/index.html">StreamerListener</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h2 class="">Types</h2>
+      <div class="table" data-togglable="Types"><a data-name="1508911242%2FClasslikes%2F349389453" anchor-label="Companion" id="1508911242%2FClasslikes%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1508911242%2FClasslikes%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h2 class="">Functions</h2>
+      <div class="table" data-togglable="Functions"><a data-name="1090159484%2FFunctions%2F349389453" anchor-label="createBackupSessionFromSessionId" id="1090159484%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="create-backup-session-from-session-id.html"><span>create</span><wbr></wbr><span>Backup</span><wbr></wbr><span>Session</span><wbr></wbr><span>From</span><wbr></wbr><span>Session</span><wbr></wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1090159484%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="create-backup-session-from-session-id.html"><span class="token function">createBackupSessionFromSessionId</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">sessionId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../video.api.upstream.models/-upstream-session/index.html">UpstreamSession</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Create a session to upload parts that have not been sent yet.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-2117886308%2FFunctions%2F349389453" anchor-label="release" id="-2117886308%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="release.html"><span><span>release</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2117886308%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="release.html"><span class="token function">release</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Release internal elements.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-456544948%2FFunctions%2F349389453" anchor-label="releaseAndCancelAll" id="-456544948%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="release-and-cancel-all.html"><span>release</span><wbr></wbr><span>And</span><wbr></wbr><span>Cancel</span><wbr></wbr><span><span>All</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-456544948%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="release-and-cancel-all.html"><span class="token function">releaseAndCancelAll</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Same as <a href="release.html">release</a> and cancel all the upload</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="2104895537%2FFunctions%2F349389453" anchor-label="startPreview" id="2104895537%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="start-preview.html"><span>start</span><wbr></wbr><span><span>Preview</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2104895537%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation">@</span><a href="https://developer.android.com/reference/kotlin/androidx/annotation/RequiresPermission.html"><span class="token annotation">RequiresPermission</span></a><span class="token punctuation">(</span><span>allOf<span class="token operator"> = </span><span class="token punctuation">[</span><span><span class="breakable-word"><span class="token string">&quot;android.permission.CAMERA&quot;</span></span></span><wbr></wbr><span class="token punctuation">]</span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword"></span><span class="token keyword">fun </span><a href="start-preview.html"><span class="token function">startPreview</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Starts camera preview of <a href="camera.html">camera</a>.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-1217854115%2FFunctions%2F349389453" anchor-label="startStreamingForToken" id="-1217854115%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="start-streaming-for-token.html"><span>start</span><wbr></wbr><span>Streaming</span><wbr></wbr><span>For</span><wbr></wbr><span><span>Token</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1217854115%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="start-streaming-for-token.html"><span class="token function">startStreamingForToken</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">token<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Starts the upstream process for an upload token</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="1826428250%2FFunctions%2F349389453" anchor-label="startStreamingForVideoId" id="1826428250%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="start-streaming-for-video-id.html"><span>start</span><wbr></wbr><span>Streaming</span><wbr></wbr><span>For</span><wbr></wbr><span>Video</span><wbr></wbr><span><span>Id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1826428250%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="start-streaming-for-video-id.html"><span class="token function">startStreamingForVideoId</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">videoId<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Starts the upstream process for a video id</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="663191325%2FFunctions%2F349389453" anchor-label="stopPreview" id="663191325%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="stop-preview.html"><span>stop</span><wbr></wbr><span><span>Preview</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="663191325%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="stop-preview.html"><span class="token function">stopPreview</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Stops camera preview.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="771482051%2FFunctions%2F349389453" anchor-label="stopStreaming" id="771482051%2FFunctions%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="stop-streaming.html"><span>stop</span><wbr></wbr><span><span>Streaming</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="771482051%2FFunctions%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">fun </span><a href="stop-streaming.html"><span class="token function">stopStreaming</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><p class="paragraph">Starts the upstream process</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h2 class="">Properties</h2>
+      <div class="table" data-togglable="Properties"><a data-name="-1455343093%2FProperties%2F349389453" anchor-label="audioConfig" id="-1455343093%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="audio-config.html">audioConfig</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1455343093%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="-1455343093%2FProperties%2F349389453" anchor-label="audioConfig" id="-1455343093%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation">@set:</span><a href="https://developer.android.com/reference/kotlin/androidx/annotation/RequiresPermission.html"><span class="token annotation">RequiresPermission</span></a><span class="token punctuation">(</span><span>value<span class="token operator"> = </span><span class="breakable-word"><span class="token string">&quot;android.permission.RECORD_AUDIO&quot;</span></span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword"></span><span class="token keyword">var </span><a href="audio-config.html">audioConfig</a><span class="token operator">: </span><a href="../../video.api.upstream.models/-audio-config/index.html">AudioConfig</a><span class="token operator">?</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="-1455343093%2FProperties%2F349389453" anchor-label="audioConfig" id="-1455343093%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><p class="paragraph">Set/get audio configuration once you have created the a <a href="index.html">ApiVideoUpstream</a> instance.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-567890318%2FProperties%2F349389453" anchor-label="camera" id="-567890318%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="camera.html">camera</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-567890318%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="-567890318%2FProperties%2F349389453" anchor-label="camera" id="-567890318%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">var </span><a href="camera.html">camera</a><span class="token operator">: </span><a href="../../video.api.upstream.enums/-camera-facing-direction/index.html">CameraFacingDirection</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="-567890318%2FProperties%2F349389453" anchor-label="camera" id="-567890318%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><p class="paragraph">Get/set current camera facing direction.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="404562306%2FProperties%2F349389453" anchor-label="isMuted" id="404562306%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="is-muted.html">isMuted</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="404562306%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="404562306%2FProperties%2F349389453" anchor-label="isMuted" id="404562306%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">var </span><a href="is-muted.html">isMuted</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="404562306%2FProperties%2F349389453" anchor-label="isMuted" id="404562306%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><p class="paragraph">Mute/Unmute microphone</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-193657237%2FProperties%2F349389453" anchor-label="isStreaming" id="-193657237%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="is-streaming.html">isStreaming</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-193657237%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="-193657237%2FProperties%2F349389453" anchor-label="isStreaming" id="-193657237%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">val </span><a href="is-streaming.html">isStreaming</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="-193657237%2FProperties%2F349389453" anchor-label="isStreaming" id="-193657237%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><p class="paragraph">Check the streaming state.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-1010339687%2FProperties%2F349389453" anchor-label="sessionListener" id="-1010339687%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="session-listener.html">sessionListener</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1010339687%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="-1010339687%2FProperties%2F349389453" anchor-label="sessionListener" id="-1010339687%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">var </span><a href="session-listener.html">sessionListener</a><span class="token operator">: </span><a href="../../video.api.upstream.models/-session-listener/index.html">SessionListener</a><span class="token operator">?</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="-1466932891%2FProperties%2F349389453" anchor-label="sessionUploadPartListener" id="-1466932891%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="session-upload-part-listener.html">sessionUploadPartListener</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1466932891%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="-1466932891%2FProperties%2F349389453" anchor-label="sessionUploadPartListener" id="-1466932891%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><span class="token keyword"></span><span class="token keyword">var </span><a href="session-upload-part-listener.html">sessionUploadPartListener</a><span class="token operator">: </span><a href="../../video.api.upstream.models/-session-upload-part-listener/index.html">SessionUploadPartListener</a><span class="token operator">?</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+<a data-name="1760095430%2FProperties%2F349389453" anchor-label="videoConfig" id="1760095430%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a>
+        <div class="table-row" data-filterable-current=":upstream:dokkaHtml/release" data-filterable-set=":upstream:dokkaHtml/release">
+          <div class="main-subrow keyValue ">
+            <div class=""><span class="inline-flex">
+                <div><a href="video-config.html">videoConfig</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1760095430%2FProperties%2F349389453"></span>
+                  <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                </span></span></div>
+            <div>
+              <div class="title">
+                <div class="platform-hinted " data-platform-hinted="data-platform-hinted" data-togglable="Properties"><div class="content sourceset-depenent-content" data-active="" data-togglable=":upstream:dokkaHtml/release"><a data-name="1760095430%2FProperties%2F349389453" anchor-label="videoConfig" id="1760095430%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation">@set:</span><a href="https://developer.android.com/reference/kotlin/androidx/annotation/RequiresPermission.html"><span class="token annotation">RequiresPermission</span></a><span class="token punctuation">(</span><span>allOf<span class="token operator"> = </span><span class="token punctuation">[</span><span><span class="breakable-word"><span class="token string">&quot;android.permission.CAMERA&quot;</span></span><span class="token punctuation">, </span></span><wbr></wbr><span><span class="breakable-word"><span class="token string">&quot;android.permission.RECORD_AUDIO&quot;</span></span></span><wbr></wbr><span class="token punctuation">]</span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword"></span><span class="token keyword">var </span><a href="video-config.html">videoConfig</a><span class="token operator">: </span><a href="../../video.api.upstream.models/-video-config/index.html">VideoConfig</a><span class="token operator">?</span><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><div class="brief "><a data-name="1760095430%2FProperties%2F349389453" anchor-label="videoConfig" id="1760095430%2FProperties%2F349389453" data-filterable-set=":upstream:dokkaHtml/release"></a><p class="paragraph">Set/get video configuration once you have created the a <a href="index.html">ApiVideoUpstream</a> instance.</p></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        <div class="footer"><span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2022 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+        </div>
+    </div>
+</div>
+</body>
+</html>
