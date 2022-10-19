@@ -1,0 +1,13 @@
+name: Android build and test CI.
+
+on: [ push ]
+
+jobs:
+  build:
+    uses: apivideo/.github/.github/workflows/android-build.yml@main
+  unit-tests:
+    needs: build
+    uses: apivideo/.github/.github/workflows/android-unit-tests.yml@main
+  instrumented-tests:
+    needs: build
+    uses: apivideo/.github/.github/workflows/android-instrumented-tests.yml@main
