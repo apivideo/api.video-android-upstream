@@ -7,7 +7,7 @@ data class ProgressSession(
     var numOfParts: Int,
     var currentPartProgress: PartProgress? = null
 ) {
-    constructor(upstreamSession: UpstreamSession) : this(upstreamSession.hashCode(), upstreamSession.numOfParts)
+    constructor(upstreamSession: UpstreamSession) : this(upstreamSession.hashCode(), upstreamSession.totalNumOfParts)
 }
 
 data class PartProgress(

@@ -69,28 +69,7 @@ and `android.permission.RECORD_AUDIO`.
     android:layout_height="match_parent" />
 ```
 
-3. Register the `UploadService`
-
-If your application `AndroidManifest.xml`, register the service:
-
-```xml
-
-<application>
-    <service android:name="video.api.uploader.api.services.UploadService" />
-</application>
-```
-
-As you can customize the `UploadService`, instead of `video.api.uploader.api.services.UploadService`
-, you are going to use the package of your custom `UploadService`.
-
-Also adds the `android.permission.FOREGROUND_SERVICE` permission:
-
-```xml
-
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-```
-
-4. Create an `ApiVideoUpstream` instance with static method `ApiVideoUpstream.create`.
+3. Create an `ApiVideoUpstream` instance in your fragment or activity.
 
 ```kotlin
 class MyFragment : Fragment() {
@@ -113,19 +92,13 @@ class MyFragment : Fragment() {
             resolution = Resolution.RESOLUTION_720,
             fps = 30
         )
-        ApiVideoUpstream.create(
+        ApiVideoUpstream(
             context = requireContext(),
             apiKey = apiKey,
             timeout = 60000, // 1 min
             initialAudioConfig = audioConfig,
             initialVideoConfig = videoConfig,
-            apiVideoView = apiVideoView,
-            onUpstreamSession = {
-                upstream = it
-            },
-            onServiceDisconnected = {
-                Log.i(TAG, "Upload service disconnected")
-            })
+            apiVideoView = apiVideoView)
     }
 }
 ```
@@ -170,11 +143,11 @@ A demo application demonstrates how to use this upstream library. See `/example`
 
 We are using external library
 
-| Plugin | README |
-| ------ | ------ |
+| Plugin                                                  | README                                                                       |
+|---------------------------------------------------------|------------------------------------------------------------------------------|
 | [StreamPack](https://github.com/ThibaultBee/StreamPack) | [README.md](https://github.com/ThibaultBee/StreamPack/blob/master/README.md) |
 
 # FAQ
 
-If you have any questions, ask us in the [community](https://community.api.video). Or
+If you have any questions, ask us in the [community](https://community.api.video) or
 use [issues](https://github.com/apivideo/api.video-android-upstream/issues).

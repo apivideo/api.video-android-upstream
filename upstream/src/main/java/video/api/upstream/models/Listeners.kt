@@ -21,14 +21,6 @@ interface StreamerListener {
  */
 interface SessionUploadPartListener {
     /**
-     * Called when the upload of a new part of the session has started.
-     *
-     * @param session The upstream session
-     * @param partId The id of the part
-     */
-    fun onNewPartStarted(session: UpstreamSession, partId: Int) {}
-
-    /**
      * Called when an error occurred during the upload of a part.
      *
      * @param session The upstream session

@@ -2,7 +2,6 @@ package video.api.upstream.example.main
 
 import android.Manifest
 import android.app.Application
-import android.content.ServiceConnection
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.AndroidViewModel
@@ -28,9 +27,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private lateinit var upstream: ApiVideoUpstream
-    private lateinit var serviceConnection: ServiceConnection
 
-    private var lastUpstreamSession: UpstreamSession? = null
+    private var lastSessionId: String? = null
     private val configuration = Configuration(getApplication())
     private val streamerListener = object : StreamerListener {
         override fun onError(error: Exception) {
@@ -41,6 +39,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
     private val sessionListener = object : SessionListener {
         override fun onNewSessionCreated(session: UpstreamSession) {
+            Log.i(TAG, "onNewSessionCreated: new session: $session")
             newSession.postValue(session)
         }
 
@@ -53,15 +52,15 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         }
 
         override fun onEndWithError(session: UpstreamSession) {
+            Log.e(TAG, "onEndWithError: session errors: $session")
             sessionEnded.postValue(session)
             sessionComplete.postValue(false)
-            lastUpstreamSession = session
         }
 
         override fun onComplete(session: UpstreamSession) {
+            Log.i(TAG, "onComplete: session completed: $session")
             sessionEnded.postValue(session)
             sessionComplete.postValue(true)
-            lastUpstreamSession = session
         }
     }
 
@@ -69,10 +68,6 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         override fun onError(session: UpstreamSession, partId: Int, error: Exception) {
             Log.e(TAG, "onError: ", error)
             message.postValue(error.message ?: "Unknown error")
-        }
-
-        override fun onNewPartStarted(session: UpstreamSession, partId: Int) {
-            Log.i(TAG, "onNewPartStarted: part: $partId")
         }
 
         override fun onComplete(
@@ -84,6 +79,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         }
 
         override fun onProgressChanged(session: UpstreamSession, partId: Int, progress: Int) {
+            Log.i(TAG, "onProgressChanged: part: $partId progress: $progress")
             this@PreviewViewModel.progress.postValue(ProgressSessionPart(session, partId, progress))
         }
     }
@@ -119,7 +115,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             null
         }
 
-        serviceConnection = ApiVideoUpstream.create(
+        upstream = ApiVideoUpstream(
             context = getApplication(),
             apiVideoView = apiVideoView,
             environment = configuration.apiEndpoint.environment,
@@ -128,21 +124,16 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             partSize = ApiClient.MIN_CHUNK_SIZE,
             initialAudioConfig = audioConfig,
             initialVideoConfig = videoConfig,
-            sessionListener = sessionListener,
-            sessionUploadPartListener = sessionUploadPartListener,
-            streamerListener = streamerListener,
-            onUpstreamSession = {
-                upstream = it
-            },
-            onServiceDisconnected = {
-                Log.i(TAG, "Upload service disconnected")
-            })
+            initialSessionListener = sessionListener,
+            initialSessionUploadPartListener = sessionUploadPartListener,
+            streamerListener = streamerListener
+        )
     }
 
     fun retry() {
         try {
-            lastUpstreamSession?.let {
-                upstream.createBackupSessionFromSessionId(it.id)
+            lastSessionId?.let {
+                upstream.createBackupSessionFromSessionId(it)
             }
         } catch (e: Exception) {
             error.postValue(e.message)
@@ -200,10 +191,11 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         try {
             if (configuration.apiEndpoint.useApiKey) {
                 createNewVideoId { videoId ->
-                    upstream.startStreamingForVideoId(videoId)
+                    lastSessionId = upstream.startStreamingForVideoId(videoId)
                 }
             } else {
-                upstream.startStreamingForToken(configuration.apiEndpoint.uploadToken)
+                lastSessionId =
+                    upstream.startStreamingForToken(configuration.apiEndpoint.uploadToken)
             }
         } catch (e: Exception) {
             error.postValue(e.message)
@@ -228,6 +220,6 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onCleared() {
         super.onCleared()
-        ApiVideoUpstream.unbindService(getApplication(), serviceConnection)
+        upstream.releaseAndCancelAll()
     }
 }

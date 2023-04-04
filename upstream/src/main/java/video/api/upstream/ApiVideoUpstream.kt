@@ -3,10 +3,10 @@ package video.api.upstream
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.ServiceConnection
 import android.util.Log
 import android.view.SurfaceHolder
 import androidx.annotation.RequiresPermission
+import androidx.work.WorkManager
 import io.github.thibaultbee.streampack.error.StreamPackError
 import io.github.thibaultbee.streampack.listeners.OnErrorListener
 import io.github.thibaultbee.streampack.streamers.file.CameraFlvFileStreamer
@@ -14,36 +14,29 @@ import io.github.thibaultbee.streampack.utils.getCameraCharacteristics
 import io.github.thibaultbee.streampack.utils.isBackCamera
 import io.github.thibaultbee.streampack.utils.isFrontCamera
 import io.github.thibaultbee.streampack.views.getPreviewOutputSize
+import video.api.uploader.VideosApi
 import video.api.uploader.api.ApiClient
 import video.api.uploader.api.models.Environment
-import video.api.uploader.api.services.UploadService
+import video.api.uploader.api.work.stores.VideosApiStore
 import video.api.upstream.enums.CameraFacingDirection
 import video.api.upstream.models.*
 import video.api.upstream.views.ApiVideoView
 import java.io.File
+import java.util.*
 
 class ApiVideoUpstream
 /**
  * Main API class.
  * A audio and video streamer capture the microphone and the camera stream and generates parts of
- * video. These parts are then uploaded by the [UploadService].
- *
- * Internally it uses a Service called [UploadService]. So as every service, it requires specific
- * declaration:
- * To add a service in your application you need to add in your `AndroidManifest.xml`:
- *  <application>
- *     <service android:name=".services.UploadService" />
- *     ...
- *  </application>
- *
- * and adds the `android.permission.FOREGROUND_SERVICE` permission to your `AndroidManifest.xml`:
- *  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
- *
- * You might want to extent this service to customize notification icon, colors, messages.
+ * video.
  *
  * @param context The application context
- * @param uploadService The upload service (could be a child class of [UploadService])
  * @param apiVideoView where to display preview. Could be null if you don't have a preview.
+ * @param apiKey The API key. If null, only upload with upload token will be possible.
+ * @param environment The environment to use. Default is [Environment.PRODUCTION].
+ * @param timeout The timeout in seconds.
+ * @param appName The application name. If set, you also must set the [appVersion].
+ * @param appVersion The application version. If srt, you also must set the [appName].
  * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
  * @param initialAudioConfig initial audio configuration. Could be change later with [audioConfig] field.
  * @param initialVideoConfig initial video configuration. Could be change later with [videoConfig] field.
@@ -55,8 +48,12 @@ class ApiVideoUpstream
 @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
 constructor(
     private val context: Context,
-    private val uploadService: UploadService,
     private val apiVideoView: ApiVideoView,
+    apiKey: String? = null,
+    environment: Environment = Environment.PRODUCTION,
+    timeout: Int? = null,
+    appName: String? = null,
+    appVersion: String? = null,
     private val partSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
     initialAudioConfig: AudioConfig?,
     initialVideoConfig: VideoConfig?,
@@ -91,7 +88,7 @@ constructor(
         /**
          * Set new video configuration.
          * It will restart preview if resolution has been changed.
-         * Encoders settings will be applied in next [startStreaming].
+         * Encoders settings will be applied in next [startStreamingForVideoId] or [startStreamingForToken].
          *
          * @param value new video configuration
          */
@@ -134,8 +131,8 @@ constructor(
     val isStreaming: Boolean
         get() = _isStreaming
 
-    private val onChunkListener = object : ChunkedFileOutputStream.OnChunkListener {
-        override fun onChunkReady(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+    private val onMultiFileListener = object : MultiFileOutputStream.Listener {
+        override fun onFileCreated(chunkIndex: Int, isLastChunk: Boolean, file: File) {
             upstreamerSession!!.upload(chunkIndex, isLastChunk, file)
         }
     }
@@ -233,6 +230,23 @@ constructor(
             "Part size must be less than or equal to ${ApiClient.MAX_CHUNK_SIZE}"
         }
 
+        val apiClient = (apiKey?.let {
+            ApiClient(it, environment.basePath)
+        } ?: ApiClient(environment.basePath)).apply {
+            if (appName != null && appVersion != null) {
+                setApplicationName(appName, appVersion)
+            }
+            setSdkName(SDK_NAME, SDK_VERSION)
+            timeout?.let {
+                readTimeout = it
+                writeTimeout = it
+            }
+        }
+        /**
+         * Provides the configuration for the API endpoints.
+         */
+        VideosApiStore.initialize(VideosApi(apiClient))
+
         apiVideoView.holder.addCallback(surfaceCallback)
         camera = initialCamera
         audioConfig?.let {
@@ -299,65 +313,79 @@ constructor(
     }
 
     /**
-     * Starts the upstream process for an upload token
+     * Starts the upstream process for an upload token.
      *
      * @param token The upload token
+     * @return The session id
      * @see stopStreaming
      */
-    fun startStreamingForToken(token: String) {
+    fun startStreamingForToken(token: String, videoId: String? = null): String {
+        val sessionId = UUID.randomUUID().toString()
+        val sessionDir = context.getSessionDir(sessionId)
         upstreamerSession = UpstreamSession.createForUploadToken(
             context,
-            uploadService,
+            sessionDir,
             token,
-            sessionListener,
-            sessionUploadPartListener
-        ).apply {
-            streamer.outputStream =
-                ChunkedFileOutputStream(
-                    context.getSessionPartsDir(id),
-                    partSize,
-                    onChunkListener
-                )
-        }
-
-        streamer.startStream()
-        _isStreaming = true
-    }
-
-    /**
-     * Starts the upstream process for a video id
-     *
-     * @param videoId The video id
-     * @see stopStreaming
-     */
-    fun startStreamingForVideoId(videoId: String) {
-        upstreamerSession = UpstreamSession.createForVideoId(
-            context,
-            uploadService,
             videoId,
             sessionListener,
             sessionUploadPartListener
         ).apply {
             streamer.outputStream =
-                ChunkedFileOutputStream(
-                    context.getSessionPartsDir(id),
+                MultiFileOutputStream(
+                    sessionDir.appendPartsDir(),
                     partSize,
-                    onChunkListener
+                    "",
+                    onMultiFileListener
                 )
         }
 
         streamer.startStream()
         _isStreaming = true
+
+        return sessionId
     }
 
     /**
-     * Starts the upstream process
+     * Starts the upstream process for a video id.
      *
-     * The [UploadService] will continue to send the generated parts.
+     * @param videoId The video id
+     * @return The session id
+     * @see stopStreaming
+     */
+    fun startStreamingForVideoId(videoId: String): String {
+        val sessionId = UUID.randomUUID().toString()
+        val sessionDir = context.getSessionDir(sessionId)
+        upstreamerSession = UpstreamSession.createForVideoId(
+            context,
+            sessionDir,
+            videoId,
+            sessionListener,
+            sessionUploadPartListener
+        ).apply {
+            streamer.outputStream =
+                MultiFileOutputStream(
+                    sessionDir.appendPartsDir(),
+                    partSize,
+                    "",
+                    onMultiFileListener
+                )
+        }
+
+        streamer.startStream()
+        _isStreaming = true
+
+        return sessionId
+    }
+
+    /**
+     * Starts the upstream process.
+     *
+     * The [WorkManager] will continue to send the generated parts.
      *
      * You won't be able to use this instance after calling this method.
      *
-     * @see startStreaming
+     * @see startStreamingForToken
+     * @see startStreamingForVideoId
      */
     fun stopStreaming() {
         streamer.stopStream()
@@ -374,170 +402,34 @@ constructor(
     }
 
     /**
-     * Same as [release] and cancel all the upload
+     * Same as [release] and cancel all the uploads
      */
     fun releaseAndCancelAll() {
         release()
-        uploadService.cancelAll()
+        upstreamerSession?.cancelAll()
     }
 
     /**
-     * Create a session to upload parts that have not been sent yet.
+     * Create a backup session to upload parts that have not been sent yet.
      *
-     * Remaining files will be automatically add to the queue of the [UploadService].
+     * Remaining files will be automatically add to the queue of the [WorkManager].
      *
-     * @param sessionId The session id. It is the id of [UpstreamSession.id].
-     * @see getSessionIdList
-     * @see getSessionId
+     * @param sessionId The session id. It is the id returned by [startStreamingForToken],
+     * [startStreamingForVideoId], [UpstreamSessionStore.getSessionIds] or [UpstreamSessionStore.getSessionId].
+     * @see UpstreamSessionStore.getSessionIds
+     * @see UpstreamSessionStore.getSessionId
      */
     fun createBackupSessionFromSessionId(sessionId: String) =
-        UpstreamSession.createFromSessionId(
+        UpstreamSession.createFromSessionDir(
             context,
-            uploadService,
-            sessionId,
+            context.getSessionDir(sessionId),
             sessionListener,
             sessionUploadPartListener
         )
 
     companion object {
         private const val TAG = "ApiVideoUpstream"
-
-        /**
-         * Deletes all internal files generated by the library
-         *
-         * @param context The application context
-         * @see delete
-         */
-        fun deleteAll(context: Context) {
-            context.upstreamWorkDir.deleteRecursively()
-        }
-
-        /**
-         * Deletes all internal files of an [UpstreamSession]
-         *
-         * @param context The application context
-         * @param sessionId The session id
-         */
-        fun delete(context: Context, sessionId: String) {
-            context.getSessionDir(sessionId).deleteRecursively()
-        }
-
-        /**
-         * Gets the id of the session that has not been successfully uploaded
-         *
-         * @param context The application context
-         * @return list of session id
-         * @see createBackupSessionFromSessionId
-         */
-        fun getSessionIdList(context: Context): List<String> {
-            return context.upstreamWorkDir.listFiles()?.map { it.name } ?: emptyList()
-        }
-
-        /**
-         * Gets the id of the session that matches the video id
-         *
-         * @param context The application context
-         * @param videoId The video id
-         * @return the session id
-         * @see createBackupSessionFromSessionId
-         */
-        fun getSessionId(context: Context, videoId: String) =
-            context.upstreamWorkDir.listFiles()
-                ?.first { UpstreamSessionStorage.getVideoId(it) == videoId }
-
-        /**
-         * Gets the video id of the session
-         *
-         * @param context The application context
-         * @param sessionId The session id
-         * @return the video id. Could be null for a session with an upload token that could not send any parts.
-         * @see createBackupSessionFromSessionId
-         */
-        fun getVideoId(context: Context, sessionId: String) =
-            UpstreamSessionStorage.getVideoId(context.getSessionDir(sessionId))
-
-        /**
-         * Starts and binds the [UploadService]. When the [UploadService] is created, it returns the
-         * [ApiVideoUpstream] instance.
-         *
-         * @param context The application context
-         * @param apiVideoView where to display preview. Could be null if you don't have a preview
-         * @param serviceClass The class of the service to start. Must be a child of [UploadService]
-         * @param apiKey The API key if you want to upload with video id
-         * @param environment The targeted environment
-         * @param timeout The API timeout in milliseconds
-         * @param partSize The part size in bytes (minimum is 5242880 bytes, maximum is 134217728 bytes)
-         * @param initialAudioConfig initial audio configuration. Could be change later with [audioConfig] field
-         * @param initialVideoConfig initial video configuration. Could be change later with [videoConfig] field
-         * @param initialCamera initial camera. Could be change later with [camera] field
-         * @param sessionListener The listener for one full video
-         * @param sessionUploadPartListener The listener for a part of a video
-         * @param streamerListener The listener for the streamer
-         * @param onUpstreamSession The callback that returns the [ApiVideoUpstream] instance
-         * @param onServiceDisconnected Called when service has been disconnected
-         * @return the service connection to unbind the service
-         *
-         * @see unbindService
-         */
-        @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
-        fun create(
-            context: Context,
-            apiVideoView: ApiVideoView,
-            serviceClass: Class<out UploadService> = UploadService::class.java,
-            apiKey: String? = null,
-            environment: Environment = Environment.PRODUCTION,
-            timeout: Int? = null,
-            partSize: Long = ApiClient.DEFAULT_CHUNK_SIZE,
-            initialAudioConfig: AudioConfig? = null,
-            initialVideoConfig: VideoConfig? = null,
-            initialCamera: CameraFacingDirection = CameraFacingDirection.BACK,
-            sessionListener: SessionListener? = null,
-            sessionUploadPartListener: SessionUploadPartListener? = null,
-            streamerListener: StreamerListener? = null,
-            onUpstreamSession: (ApiVideoUpstream) -> Unit,
-            onServiceDisconnected: () -> Unit
-        ): ServiceConnection {
-            return UploadService.startService(
-                context = context,
-                serviceClass = serviceClass,
-                apiKey = apiKey,
-                environment = environment,
-                timeout = timeout,
-                onServiceCreated = { service ->
-                    onUpstreamSession(
-                        ApiVideoUpstream(
-                            context,
-                            service,
-                            apiVideoView,
-                            partSize,
-                            initialAudioConfig,
-                            initialVideoConfig,
-                            initialCamera,
-                            sessionListener,
-                            sessionUploadPartListener,
-                            streamerListener
-                        )
-                    )
-                },
-                onServiceDisconnected = { onServiceDisconnected() },
-                sdkName = "upstream",
-                sdkVersion = "1.0.0"
-            )
-        }
-
-        /**
-         * Unbinds the [UploadService].
-         *
-         * Unbinds the device when your application is destroyed.
-         *
-         * @param context The application context
-         * @param serviceConnection The service connection returned by [create]
-         */
-        fun unbindService(
-            context: Context,
-            serviceConnection: ServiceConnection
-        ) {
-            UploadService.unbindService(context, serviceConnection)
-        }
+        private const val SDK_NAME = "upstream"
+        private const val SDK_VERSION = "1.0.0"
     }
 }

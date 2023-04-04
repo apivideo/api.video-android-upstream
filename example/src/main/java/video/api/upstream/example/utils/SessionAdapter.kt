@@ -1,5 +1,6 @@
 package video.api.upstream.example.utils
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
