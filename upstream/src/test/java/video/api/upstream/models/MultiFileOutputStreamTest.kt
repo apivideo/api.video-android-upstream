@@ -25,13 +25,13 @@ class MultiFileOutputStreamTest {
         val isLastChunkCountDownLatch = CountDownLatch(1)
         var lastChunkId = 0
         val listener = object : MultiFileOutputStream.Listener {
-            override fun onFileCreated(chunkIndex: Int, isLastChunk: Boolean, file: File) {
-                assertEquals(lastChunkId + 1, chunkIndex)
+            override fun onFileCreated(partIndex: Int, isLast: Boolean, file: File) {
+                assertEquals(lastChunkId + 1, partIndex)
                 chunkReadyCountDownLatch.countDown()
-                if (isLastChunk) {
+                if (isLast) {
                     isLastChunkCountDownLatch.countDown()
                 }
-                lastChunkId = chunkIndex
+                lastChunkId = partIndex
             }
         }
         multiFileOutputStream =
@@ -51,7 +51,7 @@ class MultiFileOutputStreamTest {
     fun `write data size == chunk size`() {
         val countDownLatch = CountDownLatch(4)
         val listener = object : MultiFileOutputStream.Listener {
-            override fun onFileCreated(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+            override fun onFileCreated(partIndex: Int, isLast: Boolean, file: File) {
                 countDownLatch.countDown()
             }
         }
@@ -70,7 +70,7 @@ class MultiFileOutputStreamTest {
     fun `multiple close test`() {
         val countDownLatch = CountDownLatch(3)
         val listener = object : MultiFileOutputStream.Listener {
-            override fun onFileCreated(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+            override fun onFileCreated(partIndex: Int, isLast: Boolean, file: File) {
                 countDownLatch.countDown()
             }
         }
@@ -90,7 +90,7 @@ class MultiFileOutputStreamTest {
     fun `close without writing data`() {
         val countDownLatch = CountDownLatch(1)
         val listener = object : MultiFileOutputStream.Listener {
-            override fun onFileCreated(chunkIndex: Int, isLastChunk: Boolean, file: File) {
+            override fun onFileCreated(partIndex: Int, isLast: Boolean, file: File) {
                 countDownLatch.countDown()
             }
         }

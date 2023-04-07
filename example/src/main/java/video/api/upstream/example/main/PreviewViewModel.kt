@@ -27,8 +27,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private lateinit var upstream: ApiVideoUpstream
+    private var upstreamSessions = mutableListOf<UpstreamSession>()
 
-    private var lastSessionId: String? = null
     private val configuration = Configuration(getApplication())
     private val streamerListener = object : StreamerListener {
         override fun onError(error: Exception) {
@@ -59,6 +59,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
         override fun onComplete(session: UpstreamSession) {
             Log.i(TAG, "onComplete: session completed: $session")
+            upstreamSessions.remove(session)
             sessionEnded.postValue(session)
             sessionComplete.postValue(true)
         }
@@ -132,8 +133,8 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
     fun retry() {
         try {
-            lastSessionId?.let {
-                upstream.createBackupSessionFromSessionId(it)
+            upstreamSessions.forEach {
+                upstreamSessions += upstream.loadSessionFromSessionId(it.id)
             }
         } catch (e: Exception) {
             error.postValue(e.message)
@@ -190,11 +191,12 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     fun startStream() {
         try {
             if (configuration.apiEndpoint.useApiKey) {
+                // Create a new video id each time we start streaming
                 createNewVideoId { videoId ->
-                    lastSessionId = upstream.startStreamingForVideoId(videoId)
+                    upstreamSessions += upstream.startStreamingForVideoId(videoId)
                 }
             } else {
-                lastSessionId =
+                upstreamSessions +=
                     upstream.startStreamingForToken(configuration.apiEndpoint.uploadToken)
             }
         } catch (e: Exception) {
@@ -220,6 +222,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
 
     override fun onCleared() {
         super.onCleared()
-        upstream.releaseAndCancelAll()
+        upstream.release()
+        upstreamSessions.forEach { it.cancel() }
     }
 }

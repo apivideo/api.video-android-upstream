@@ -47,7 +47,7 @@ class MultiFileOutputStream(
             }
         }
 
-    var _numOfFileWritten: Int = 0
+    private var _numOfFileWritten: Int = 0
     val numOfFileWritten: Int
         get() = _numOfFileWritten
 
@@ -103,6 +103,6 @@ class MultiFileOutputStream(
     }
 
     interface Listener {
-        fun onFileCreated(chunkIndex: Int, isLastChunk: Boolean, file: File) {}
+        fun onFileCreated(partIndex: Int, isLast: Boolean, file: File) {}
     }
 }
