@@ -62,7 +62,11 @@ constructor(
     initialSessionUploadPartListener: SessionUploadPartListener? = null,
     private val streamerListener: StreamerListener? = null,
 ) {
-    private val partDir = context.partsDir
+    private val partDir = context.partsDir.apply {
+        if (!exists()) {
+            mkdirs()
+        }
+    }
     private val upstreamSessionStore = UpstreamStore.getStorage(context)
 
     var sessionListener: SessionListener? = initialSessionListener
@@ -314,9 +318,9 @@ constructor(
      * @return The upstream session
      * @see stopStreaming
      */
-    fun startStreamingForToken(token: String, videoId: String? = null): UpstreamSession {
+    fun startStreamingForToken(token: String, videoId: String? = null): MultiFileUploader {
         val sessionId = UUID.randomUUID().toString()
-        val upstreamSession = UpstreamSession.createForUploadToken(
+        val multiFileUploader = MultiFileUploader.createForUploadToken(
             context,
             sessionId,
             upstreamSessionStore,
@@ -326,9 +330,9 @@ constructor(
             sessionUploadPartListener
         )
 
-        startStreaming(upstreamSession)
+        startStreaming(multiFileUploader)
 
-        return upstreamSession
+        return multiFileUploader
     }
 
     /**
@@ -338,9 +342,9 @@ constructor(
      * @return The upstream session
      * @see stopStreaming
      */
-    fun startStreamingForVideoId(videoId: String): UpstreamSession {
+    fun startStreamingForVideoId(videoId: String): MultiFileUploader {
         val sessionId = UUID.randomUUID().toString()
-        val upstreamerSession = UpstreamSession.createForVideoId(
+        val upstreamerSession = MultiFileUploader.createForVideoId(
             context,
             sessionId,
             upstreamSessionStore,
@@ -354,13 +358,13 @@ constructor(
         return upstreamerSession
     }
 
-    private fun startStreaming(upstreamSession: UpstreamSession) {
+    private fun startStreaming(multiFileUploader: MultiFileUploader) {
         streamer.outputStream =
             MultiFileOutputStream(
                 partDir,
                 partSize,
                 "part_",
-                upstreamSession
+                multiFileUploader
             )
 
         streamer.startStream()
@@ -396,12 +400,12 @@ constructor(
      *
      * Remaining parts will be automatically add to the queue of the [WorkManager].
      *
-     * @param sessionId The session id. It is the id of the [UpstreamSession] returned by [startStreamingForToken],
+     * @param sessionId The session id. It is the id of the [MultiFileUploader] returned by [startStreamingForToken],
      * [startStreamingForVideoId].
      * @return The upstream session
      */
     fun loadSessionFromSessionId(sessionId: String) =
-        UpstreamSession.loadExistingSession(
+        MultiFileUploader.loadExistingSession(
             context,
             sessionId,
             upstreamSessionStore,

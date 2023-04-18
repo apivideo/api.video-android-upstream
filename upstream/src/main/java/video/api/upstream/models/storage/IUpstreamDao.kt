@@ -7,14 +7,15 @@ interface IUpstreamDao {
     fun getByVideoId(videoId: String): UpstreamSessionEntity?
     fun getByToken(token: String, videoId: String?): List<UpstreamSessionEntity>
 
-    fun insert(session: UpstreamSessionEntity)
+    fun insert(sessionId: String)
     fun remove(sessionId: String)
 
     fun insertVideoId(sessionId: String, videoId: String)
+    fun insertToken(sessionId: String, token: String)
 
     fun getLastPartId(sessionId: String): Int?
 
-    fun hasPart(sessionId: String): Boolean
+    fun hasParts(sessionId: String): Boolean
     fun getParts(sessionId: String): List<Part>
 
     /**

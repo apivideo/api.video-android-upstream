@@ -8,7 +8,6 @@ import androidx.lifecycle.Observer
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import video.api.uploader.api.models.Video
-import video.api.uploader.api.upload.IProgressiveUploadSession
 import video.api.uploader.api.work.*
 import video.api.uploader.api.work.stores.VideosApiStore
 import video.api.uploader.api.work.workers.AbstractUploadWorker
@@ -17,10 +16,10 @@ import video.api.upstream.models.storage.Part
 import java.io.File
 import java.security.InvalidParameterException
 
-class UpstreamSession
+class MultiFileUploader
 /**
  * Manages the upload of a video parts.
- * An [UpstreamSession] uploads one video only. A video is composed of multiple parts.
+ * An [MultiFileUploader] uploads one video only. A video is composed of multiple parts.
  *
  * @param context The application context
  * @param sessionStore The session store
@@ -30,34 +29,19 @@ class UpstreamSession
 private constructor(
     private val context: Context,
     val id: String,
+    private val videoId: String? = null,
+    private val token: String? = null,
     private val sessionStore: IUpstreamDao,
-    private val progressiveSession: IProgressiveUploadSession,
     private val sessionListener: SessionListener?,
     private val sessionUploadPartListener: SessionUploadPartListener?
 ) : MultiFileOutputStream.Listener {
-    private constructor(
-        context: Context,
-        sessionId: String,
-        sessionStore: IUpstreamDao,
-        videoId: String? = null,
-        token: String? = null,
-        sessionListener: SessionListener? = null,
-        sessionUploadPartListener: SessionUploadPartListener? = null
-    ) : this(
-        context,
-        id = sessionId,
-        sessionStore = sessionStore,
-        progressiveSession = token?.let {
-            VideosApiStore.getInstance().createUploadWithUploadTokenProgressiveSession(it, videoId)
-        } ?: VideosApiStore.getInstance().createUploadProgressiveSession(videoId!!),
-        sessionListener = sessionListener,
-        sessionUploadPartListener = sessionUploadPartListener
-    ) {
-        require((videoId != null) || (token != null)) { "Token or videoId must be set" }
-    }
 
     // Create a unique tag - to avoid create UUID, use the sessionId
     private val sessionTag = id
+
+    private val progressiveSession = token?.let {
+        VideosApiStore.getInstance().createUploadWithUploadTokenProgressiveSession(it, videoId)
+    } ?: VideosApiStore.getInstance().createUploadProgressiveSession(videoId!!)
 
     private val workManager = WorkManager.getInstance(context)
     private val operationWithRequests = mutableListOf<OperationWithRequest>()
@@ -107,8 +91,19 @@ private constructor(
     }
 
     init {
-        sessionStore.getParts(id).forEach {
-            upload(it.index, it.isLast, it.file)
+        // Restore the session or insert a new session id
+        sessionStore.getById(id)?.let {
+            it.parts.forEach { part ->
+                upload(part.index, part.isLast, part.file)
+            }
+        } ?: run {
+            sessionStore.insert(id)
+            videoId?.let {
+                sessionStore.insertVideoId(id, it)
+            }
+            token?.let {
+                sessionStore.insertToken(id, it)
+            }
         }
     }
 
@@ -116,7 +111,7 @@ private constructor(
         get() = workManager.getWorkInfosByTag(sessionTag).get()
 
     private fun onUploadCancelled() {
-        if (allPartsFinished && hasLastPart) {
+        if (isFinished) {
             onEnd()
         }
     }
@@ -128,14 +123,14 @@ private constructor(
         file.delete()
         sessionUploadPartListener?.onComplete(this, partId, video)
 
-        if (allPartsFinished && hasLastPart) {
+        if (isFinished) {
             onEnd()
         }
     }
 
     private fun onUploadError(partId: Int, e: Exception) {
         sessionUploadPartListener?.onError(this, partId, e)
-        if (allPartsFinished && hasLastPart) {
+        if (isFinished) {
             onEnd()
         }
     }
@@ -226,6 +221,19 @@ private constructor(
         get() = sessionStore.getLastPartId(id) != null
 
     /**
+     * True where all parts where successfully sent.
+     */
+    val isCompleted: Boolean
+        get() = !hasRemainingParts && hasLastPart
+
+    /**
+     * True if there is no more parts to send.
+     * This means that all parts have been sent, cancelled or in error and the last part has been received.
+     */
+    val isFinished: Boolean
+        get() = allPartsFinished && hasLastPart
+
+    /**
      * Total number of parts for the video.
      * The number of parts increases as long as upstream is running.
      */
@@ -266,7 +274,7 @@ private constructor(
      * Check if there are still remaining parts in the storage
      */
     private val hasRemainingParts: Boolean
-        get() = sessionStore.hasPart(id)
+        get() = sessionStore.hasParts(id)
 
     companion object {
         private const val PREFIX_PART_ID = "partId="
@@ -291,7 +299,7 @@ private constructor(
             sessionStore: IUpstreamDao,
             sessionListener: SessionListener? = null,
             sessionUploadPartListener: SessionUploadPartListener? = null
-        ): UpstreamSession {
+        ): MultiFileUploader {
             val upstreamSessionEntity = sessionStore.getById(sessionId)
                 ?: throw InvalidParameterException("Unknown session $sessionId")
 
@@ -302,9 +310,9 @@ private constructor(
             val videoId = upstreamSessionEntity.videoId
             val token = upstreamSessionEntity.token
 
-            return UpstreamSession(
+            return MultiFileUploader(
                 context,
-                sessionId = sessionId,
+                id = sessionId,
                 sessionStore = sessionStore,
                 videoId = videoId,
                 token = token,
@@ -320,9 +328,9 @@ private constructor(
             videoId: String,
             sessionListener: SessionListener? = null,
             sessionUploadPartListener: SessionUploadPartListener? = null
-        ) = UpstreamSession(
+        ) = MultiFileUploader(
             context,
-            sessionId = sessionId,
+            id = sessionId,
             sessionStore = sessionStore,
             videoId = videoId,
             token = null,
@@ -338,9 +346,9 @@ private constructor(
             videoId: String?,
             sessionListener: SessionListener? = null,
             sessionUploadPartListener: SessionUploadPartListener? = null
-        ) = UpstreamSession(
+        ) = MultiFileUploader(
             context,
-            sessionId = sessionId,
+            id = sessionId,
             sessionStore = sessionStore,
             videoId = videoId,
             token = token,

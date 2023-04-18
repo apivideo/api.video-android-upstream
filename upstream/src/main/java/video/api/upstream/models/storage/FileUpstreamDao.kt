@@ -32,7 +32,7 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
     }
 
     override fun getByVideoId(videoId: String): UpstreamSessionEntity? {
-        return workingDir.listFiles()?.single { getVideoId(it) == videoId }?.upstreamSession
+        return workingDir.listFiles()?.singleOrNull { getVideoId(it) == videoId }?.upstreamSession
     }
 
     override fun getByToken(token: String, videoId: String?): List<UpstreamSessionEntity> {
@@ -46,8 +46,11 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
         }
     }
 
-    override fun insert(session: UpstreamSessionEntity) {
-        session.writeToDisk()
+    override fun insert(sessionId: String) {
+        val sessionDir = File(workingDir, sessionId)
+        sessionDir.mkdirs()
+        val partInfoDir = File(sessionDir, PART_INFO_DIR)
+        partInfoDir.mkdirs()
     }
 
     override fun remove(sessionId: String) {
@@ -61,6 +64,15 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
             return
         }
         videoIdFile.writeText(videoId)
+    }
+
+    override fun insertToken(sessionId: String, token: String) {
+        val sessionDir = File(workingDir, sessionId)
+        val tokenFile = File(sessionDir, TOKEN_FILE_NAME)
+        if (tokenFile.exists()) {
+            return
+        }
+        tokenFile.writeText(token)
     }
 
     override fun getLastPartId(sessionId: String): Int? {
@@ -82,7 +94,7 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
         lastPartIdFile.writeText("$lastPartIndex")
     }
 
-    override fun hasPart(sessionId: String): Boolean {
+    override fun hasParts(sessionId: String): Boolean {
         val sessionDir = File(workingDir, sessionId)
         val partDir = File(sessionDir, PART_INFO_DIR)
         return partDir.list()?.isNotEmpty() ?: false
@@ -92,18 +104,15 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
 
     override fun insertPart(sessionId: String, part: Part) {
         val sessionDir = File(workingDir, sessionId)
-        val partDir = File(sessionDir, PART_INFO_DIR)
-        if (!partDir.exists()) {
-            partDir.mkdirs()
-        }
+        val partInfoDir = File(sessionDir, PART_INFO_DIR)
 
         if (part.isLast) {
             insertLastPartId(sessionId, part.index)
         }
 
-        val partFile = File(partDir, "${part.index}")
+        val partFile = File(partInfoDir, "${part.index}")
         if (partFile.exists()) {
-            return
+            throw IllegalStateException("The part ${part.index} already exists")
         }
         partFile.writeText(part.file.path)
     }
@@ -112,26 +121,6 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
         val sessionDir = File(workingDir, sessionId)
         val partDir = File(sessionDir, PART_INFO_DIR)
         File(partDir, "$partIndex").delete()
-    }
-
-    private fun UpstreamSessionEntity.writeToDisk() {
-        val sessionDir = File(workingDir, id)
-        sessionDir.mkdirs()
-
-        videoId?.let {
-            File(sessionDir, VIDEO_ID_FILE_NAME).writeText(it)
-        }
-        token?.let {
-            File(sessionDir, TOKEN_FILE_NAME).writeText(it)
-        }
-        File(sessionDir, LAST_PART_ID_FILE_NAME).writeText("${parts.single { it.isLast }.index}")
-
-        val partInfoDir = File(sessionDir, PART_INFO_DIR)
-        partInfoDir.mkdirs()
-
-        parts.forEach {
-            File(partInfoDir, it.index.toString()).writeText(it.file.path)
-        }
     }
 
     private val File.upstreamSession: UpstreamSessionEntity
@@ -158,8 +147,14 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
          * @param sessionDir The session directory
          * @return the video id
          */
-        private fun getVideoId(sessionDir: File) =
-            File(sessionDir, VIDEO_ID_FILE_NAME).readText()
+        private fun getVideoId(sessionDir: File): String? {
+            val videoIdFile = File(sessionDir, VIDEO_ID_FILE_NAME)
+            return if (videoIdFile.exists()) {
+                videoIdFile.readText()
+            } else {
+                null
+            }
+        }
 
         /**
          * Gets the upload token of the session.
@@ -167,8 +162,15 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
          * @param sessionDir The session directory
          * @return the upload token
          */
-        private fun getToken(sessionDir: File) =
-            File(sessionDir, TOKEN_FILE_NAME).readText()
+        private fun getToken(sessionDir: File): String? {
+            val tokenFile = File(sessionDir, TOKEN_FILE_NAME)
+            return if (tokenFile.exists()) {
+                tokenFile.readText()
+            } else {
+                null
+            }
+        }
+
 
         /**
          * Gets the last part id of the session if it exists.
@@ -208,11 +210,40 @@ class FileUpstreamDao(private val workingDir: File) : IUpstreamDao {
         private fun getPartInfo(sessionDir: File, partIndex: Int): Part? {
             val lastPartIndex = getLastPartId(sessionDir)
 
-            val file = File(sessionDir, "$partIndex")
+            val partDir = File(sessionDir, PART_INFO_DIR)
+            val file = File(partDir, "$partIndex")
             return if (file.exists()) {
                 Part(partIndex, partIndex == lastPartIndex, File(file.readText()))
             } else {
                 null
+            }
+        }
+
+
+        /**
+         * Writes the session to disk.
+         *
+         * @param directory The directory to write the session to
+         */
+        fun UpstreamSessionEntity.writeToDisk(directory: File) {
+            val sessionDir = File(directory, id)
+            sessionDir.mkdirs()
+
+            videoId?.let {
+                File(sessionDir, VIDEO_ID_FILE_NAME).writeText(it)
+            }
+            token?.let {
+                File(sessionDir, TOKEN_FILE_NAME).writeText(it)
+            }
+            parts.singleOrNull { it.isLast }?.let {
+                File(sessionDir, LAST_PART_ID_FILE_NAME).writeText("${it.index}")
+            }
+
+            val partInfoDir = File(sessionDir, PART_INFO_DIR)
+            partInfoDir.mkdirs()
+
+            parts.forEach {
+                File(partInfoDir, it.index.toString()).writeText(it.file.path)
             }
         }
     }

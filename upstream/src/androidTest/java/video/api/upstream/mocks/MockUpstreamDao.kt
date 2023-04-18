@@ -1,13 +1,13 @@
 package video.api.upstream.mocks
 
-import video.api.upstream.mocks.SingleUpstreamSessionEntityMockStore.Companion.fromUpstreamSessionEntity
 import video.api.upstream.models.storage.IUpstreamDao
 import video.api.upstream.models.storage.Part
 import video.api.upstream.models.storage.UpstreamSessionEntity
 
 class MockUpstreamDao(
-    private val sessions: MutableList<SingleUpstreamSessionEntityMockStore> = mutableListOf(),
-) : IUpstreamDao {
+    private val sessions: MutableList<MutableUpstreamSessionEntity> = mutableListOf()
+) :
+    IUpstreamDao {
     override val allSessions: List<UpstreamSessionEntity>
         get() = sessions.map { it.toUpstreamSessionEntity() }
 
@@ -26,8 +26,8 @@ class MockUpstreamDao(
         }
     }
 
-    override fun insert(session: UpstreamSessionEntity) {
-        sessions.add(fromUpstreamSessionEntity(session))
+    override fun insert(sessionId: String) {
+        sessions.add(MutableUpstreamSessionEntity(sessionId, null, null))
     }
 
     override fun remove(sessionId: String) {
@@ -42,10 +42,18 @@ class MockUpstreamDao(
         session.videoId = videoId
     }
 
-    override fun getLastPartId(sessionId: String) =
-        sessions.single { it.id == sessionId }.lastPart.index
+    override fun insertToken(sessionId: String, token: String) {
+        val session = sessions.single { it.id == sessionId }
+        if (session.token != null) {
+            return
+        }
+        session.token = token
+    }
 
-    override fun hasPart(sessionId: String) = sessions.single { it.id == sessionId }.hasParts
+    override fun getLastPartId(sessionId: String) =
+        sessions.single { it.id == sessionId }.lastPart?.index
+
+    override fun hasParts(sessionId: String) = sessions.single { it.id == sessionId }.hasParts
 
     override fun getParts(sessionId: String) = sessions.single { it.id == sessionId }.parts
 
@@ -53,6 +61,9 @@ class MockUpstreamDao(
         val session = sessions.single { it.id == sessionId }
         if (session.parts.any { it.index == part.index }) {
             return
+        }
+        if (part.isLast) {
+            session.lastPart = part
         }
         session.parts.add(part)
     }
@@ -62,13 +73,13 @@ class MockUpstreamDao(
     }
 }
 
-class SingleUpstreamSessionEntityMockStore(
+class MutableUpstreamSessionEntity(
     val id: String,
     var videoId: String?,
     var token: String?,
-    val parts: MutableList<Part> = mutableListOf(),
+    val parts: MutableList<Part> = mutableListOf()
 ) {
-    var lastPart = parts.single { it.isLast }
+    var lastPart = parts.singleOrNull { it.isLast }
 
     val hasParts: Boolean
         get() = parts.isNotEmpty()
@@ -77,7 +88,7 @@ class SingleUpstreamSessionEntityMockStore(
 
     companion object {
         fun fromUpstreamSessionEntity(session: UpstreamSessionEntity) =
-            SingleUpstreamSessionEntityMockStore(
+            MutableUpstreamSessionEntity(
                 session.id,
                 session.videoId,
                 session.token,

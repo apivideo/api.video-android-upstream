@@ -1,9 +1,9 @@
 package video.api.upstream.models.storage
 
-import video.api.upstream.models.UpstreamSession
+import video.api.upstream.models.MultiFileUploader
 
 /**
- * The entity of the [UpstreamSession] in the storage.
+ * The entity of the [MultiFileUploader] in the storage.
  */
 data class UpstreamSessionEntity(
     val id: String,
@@ -14,7 +14,7 @@ data class UpstreamSessionEntity(
     /**
      * The last part of the session.
      */
-    val lastPart = parts.single { it.isLast }
+    val lastPart = parts.singleOrNull { it.isLast }
 
     /**
      * Whether the session has remaining parts to upload.
