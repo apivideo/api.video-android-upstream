@@ -128,7 +128,7 @@ to [API documentation](https://apivideo.github.io/api.video-android-upstream/).
 # Tips
 
 * If a part of the video is not uploaded, you can resume the upload by creating a
-  new `MultiFileUploader` with `MultiFileUploader.loadExistingSession`.
+  new `MultiFileUploader` with `ApiVideoUpstream.loadExistingSession`.
 * You can check device supported configurations by using the helper: `Helper`
 
 # Documentation

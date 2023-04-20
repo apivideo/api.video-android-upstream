@@ -130,7 +130,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     fun retryAllSessions() {
         try {
             multiFileUploaders.forEach {
-                multiFileUploaders += upstream.loadSessionFromSessionId(it.id)
+                multiFileUploaders += upstream.loadExistingSession(it.id)
             }
         } catch (e: Exception) {
             error.postValue(e.message)

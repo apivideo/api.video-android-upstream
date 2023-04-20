@@ -372,11 +372,12 @@ constructor(
     }
 
     /**
-     * Starts the upstream process.
+     * Stops the upstream process.
      *
      * The [WorkManager] will continue to send the generated parts.
      *
-     * You won't be able to use this instance after calling this method.
+     * You can start a new streaming with [startStreamingForToken] or [startStreamingForVideoId].
+     * The upload will continue through the [MultiFileUploader].
      *
      * @see startStreamingForToken
      * @see startStreamingForVideoId
@@ -387,7 +388,7 @@ constructor(
     }
 
     /**
-     * Release internal elements.
+     * Releases internal elements.
      *
      * You won't be able to use this instance after calling this method.
      */
@@ -396,7 +397,7 @@ constructor(
     }
 
     /**
-     * Load a session from the internal store by the [sessionId].
+     * Loads a session from the internal store by the [sessionId].
      *
      * Remaining parts will be automatically add to the queue of the [WorkManager].
      *
@@ -404,7 +405,7 @@ constructor(
      * [startStreamingForVideoId].
      * @return The upstream session
      */
-    fun loadSessionFromSessionId(sessionId: String) =
+    fun loadExistingSession(sessionId: String) =
         MultiFileUploader.loadExistingSession(
             context,
             sessionId,
@@ -412,6 +413,19 @@ constructor(
             sessionListener,
             sessionUploadPartListener
         )
+
+    /**
+     * Gets the list of all stored sessions id.
+     */
+    val storedSessionsId: List<String>
+        get() = upstreamSessionStore.allSessions.map { it.id }
+
+    /**
+     * Removes a session from the internal store by the [sessionId].
+     */
+    fun removeSession(sessionId: String) {
+        upstreamSessionStore.remove(sessionId)
+    }
 
     companion object {
         private const val TAG = "ApiVideoUpstream"

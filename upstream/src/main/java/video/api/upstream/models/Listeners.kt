@@ -78,7 +78,7 @@ interface SessionListener {
      * Called when the session uploaded all the parts but few parts weren't uploaded (due to error
      * or cancellation).
      * In this case, you can create a new backup session to upload the remaining files
-     * [ApiVideoUpstream.loadSessionFromSessionId].
+     * [ApiVideoUpstream.loadExistingSession].
      *
      * @param session The upstream session
      */
