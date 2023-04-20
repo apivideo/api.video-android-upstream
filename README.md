@@ -63,10 +63,8 @@ and `android.permission.RECORD_AUDIO`.
 
 ```xml
 
-<video.api.upstream.views.ApiVideoView 
-    android:id="@+id/apiVideoView"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+<video.api.upstream.views.ApiVideoView android:id="@+id/apiVideoView"
+    android:layout_width="match_parent" android:layout_height="match_parent" />
 ```
 
 3. Create an `ApiVideoUpstream` instance in your fragment or activity.
@@ -98,7 +96,8 @@ class MyFragment : Fragment() {
             timeout = 60000, // 1 min
             initialAudioConfig = audioConfig,
             initialVideoConfig = videoConfig,
-            apiVideoView = apiVideoView)
+            apiVideoView = apiVideoView
+        )
     }
 }
 ```
@@ -128,7 +127,9 @@ to [API documentation](https://apivideo.github.io/api.video-android-upstream/).
 
 # Tips
 
-You can check device supported configurations by using the helper: `Helper`
+* If a part of the video is not uploaded, you can resume the upload by creating a
+  new `MultiFileUploader` with `MultiFileUploader.loadExistingSession`.
+* You can check device supported configurations by using the helper: `Helper`
 
 # Documentation
 
