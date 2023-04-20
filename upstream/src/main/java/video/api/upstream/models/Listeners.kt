@@ -21,21 +21,13 @@ interface StreamerListener {
  */
 interface SessionUploadPartListener {
     /**
-     * Called when the upload of a new part of the session has started.
-     *
-     * @param session The upstream session
-     * @param partId The id of the part
-     */
-    fun onNewPartStarted(session: UpstreamSession, partId: Int) {}
-
-    /**
      * Called when an error occurred during the upload of a part.
      *
      * @param session The upstream session
      * @param partId The id of the part
      * @param error The error that occurred
      */
-    fun onError(session: UpstreamSession, partId: Int, error: Exception) {}
+    fun onError(session: MultiFileUploader, partId: Int, error: Exception) {}
 
     /**
      * Called when a part has been successfully uploaded
@@ -44,7 +36,7 @@ interface SessionUploadPartListener {
      * @param partId The id of the part
      * @param video The video
      */
-    fun onComplete(session: UpstreamSession, partId: Int, video: Video) {}
+    fun onComplete(session: MultiFileUploader, partId: Int, video: Video) {}
 
     /**
      * Called when the progress has been updated
@@ -52,7 +44,7 @@ interface SessionUploadPartListener {
      * @param session The upstream session
      * @param partId The id of the part
      */
-    fun onProgressChanged(session: UpstreamSession, partId: Int, progress: Int) {}
+    fun onProgressChanged(session: MultiFileUploader, partId: Int, progress: Int) {}
 }
 
 /**
@@ -65,7 +57,7 @@ interface SessionListener {
      *
      * @param session The upstream session
      */
-    fun onNewSessionCreated(session: UpstreamSession) {}
+    fun onNewSessionCreated(session: MultiFileUploader) {}
 
     /**
      * Called when the number of parts in session has changed.
@@ -73,22 +65,22 @@ interface SessionListener {
      * @param session The upstream session
      * @param numOfParts The number of parts
      */
-    fun onNumberOfPartsChanged(session: UpstreamSession, numOfParts: Int) {}
+    fun onNumberOfPartsChanged(session: MultiFileUploader, numOfParts: Int) {}
 
     /**
      * Called when all the parts of a session has been successfully uploaded.
      *
      * @param session The upstream session
      */
-    fun onComplete(session: UpstreamSession) {}
+    fun onComplete(session: MultiFileUploader) {}
 
     /**
      * Called when the session uploaded all the parts but few parts weren't uploaded (due to error
      * or cancellation).
      * In this case, you can create a new backup session to upload the remaining files
-     * [ApiVideoUpstream.createBackupSessionFromSessionId].
+     * [ApiVideoUpstream.loadSessionFromSessionId].
      *
      * @param session The upstream session
      */
-    fun onEndWithError(session: UpstreamSession) {}
+    fun onEndWithError(session: MultiFileUploader) {}
 }

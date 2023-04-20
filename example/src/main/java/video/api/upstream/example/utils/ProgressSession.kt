@@ -1,13 +1,13 @@
 package video.api.upstream.example.utils
 
-import video.api.upstream.models.UpstreamSession
+import video.api.upstream.models.MultiFileUploader
 
 data class ProgressSession(
     val sessionId: Int,
     var numOfParts: Int,
     var currentPartProgress: PartProgress? = null
 ) {
-    constructor(upstreamSession: UpstreamSession) : this(upstreamSession.hashCode(), upstreamSession.numOfParts)
+    constructor(multiFileUploader: MultiFileUploader) : this(multiFileUploader.hashCode(), multiFileUploader.totalNumOfParts)
 }
 
 data class PartProgress(
@@ -21,14 +21,14 @@ data class SessionParts(
     val numOfParts: Int,
 ) {
     constructor(
-        upstreamSession: UpstreamSession,
+        multiFileUploader: MultiFileUploader,
         numOfParts: Int
-    ) : this(upstreamSession.hashCode(), numOfParts)
+    ) : this(multiFileUploader.hashCode(), numOfParts)
 }
 
 data class ProgressSessionPart(val sessionId: Int, val part: Int, val progress: Int = 0) {
-    constructor(upstreamSession: UpstreamSession, partId: Int, progress: Int = 0) : this(
-        upstreamSession.hashCode(),
+    constructor(multiFileUploader: MultiFileUploader, partId: Int, progress: Int = 0) : this(
+        multiFileUploader.hashCode(),
         partId,
         progress
     )

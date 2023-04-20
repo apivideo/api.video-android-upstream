@@ -2,7 +2,6 @@ package video.api.upstream.example.main
 
 import android.Manifest
 import android.app.Application
-import android.content.ServiceConnection
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.AndroidViewModel
@@ -23,14 +22,9 @@ import video.api.upstream.models.*
 import video.api.upstream.views.ApiVideoView
 
 class PreviewViewModel(application: Application) : AndroidViewModel(application) {
-    companion object {
-        private const val TAG = "PreviewViewModel"
-    }
-
     private lateinit var upstream: ApiVideoUpstream
-    private lateinit var serviceConnection: ServiceConnection
+    private val multiFileUploaders = mutableListOf<MultiFileUploader>()
 
-    private var lastUpstreamSession: UpstreamSession? = null
     private val configuration = Configuration(getApplication())
     private val streamerListener = object : StreamerListener {
         override fun onError(error: Exception) {
@@ -40,50 +34,49 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private val sessionListener = object : SessionListener {
-        override fun onNewSessionCreated(session: UpstreamSession) {
+        override fun onNewSessionCreated(session: MultiFileUploader) {
+            Log.i(TAG, "onNewSessionCreated: new session: $session")
             newSession.postValue(session)
         }
 
         override fun onNumberOfPartsChanged(
-            session: UpstreamSession,
+            session: MultiFileUploader,
             numOfParts: Int
         ) {
             Log.i(TAG, "onTotalNumberOfPartsChanged: $numOfParts")
             this@PreviewViewModel.numOfParts.postValue(SessionParts(session, numOfParts))
         }
 
-        override fun onEndWithError(session: UpstreamSession) {
+        override fun onEndWithError(session: MultiFileUploader) {
+            Log.e(TAG, "onEndWithError: session errors: $session")
             sessionEnded.postValue(session)
             sessionComplete.postValue(false)
-            lastUpstreamSession = session
         }
 
-        override fun onComplete(session: UpstreamSession) {
+        override fun onComplete(session: MultiFileUploader) {
+            Log.i(TAG, "onComplete: session completed: $session")
+            multiFileUploaders.remove(session)
             sessionEnded.postValue(session)
             sessionComplete.postValue(true)
-            lastUpstreamSession = session
         }
     }
 
     private val sessionUploadPartListener = object : SessionUploadPartListener {
-        override fun onError(session: UpstreamSession, partId: Int, error: Exception) {
+        override fun onError(session: MultiFileUploader, partId: Int, error: Exception) {
             Log.e(TAG, "onError: ", error)
             message.postValue(error.message ?: "Unknown error")
         }
 
-        override fun onNewPartStarted(session: UpstreamSession, partId: Int) {
-            Log.i(TAG, "onNewPartStarted: part: $partId")
-        }
-
         override fun onComplete(
-            session: UpstreamSession,
+            session: MultiFileUploader,
             partId: Int,
             video: video.api.uploader.api.models.Video
         ) {
             Log.i(TAG, "onComplete: part: $partId: ${video.videoId}")
         }
 
-        override fun onProgressChanged(session: UpstreamSession, partId: Int, progress: Int) {
+        override fun onProgressChanged(session: MultiFileUploader, partId: Int, progress: Int) {
+            Log.i(TAG, "onProgressChanged: part: $partId progress: $progress")
             this@PreviewViewModel.progress.postValue(ProgressSessionPart(session, partId, progress))
         }
     }
@@ -91,15 +84,15 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     val error = MutableLiveData<String>()
     val message = MutableLiveData<String>()
 
-    val newSession = MutableLiveData<UpstreamSession>()
-    val sessionEnded = MutableLiveData<UpstreamSession>()
+    val newSession = MutableLiveData<MultiFileUploader>()
+    val sessionEnded = MutableLiveData<MultiFileUploader>()
     val numOfParts = MutableLiveData<SessionParts>()
     val progress = MutableLiveData<ProgressSessionPart>()
 
     val sessionComplete = MutableLiveData<Boolean>()
 
     @RequiresPermission(allOf = [Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA])
-    fun buildUpStream(apiVideoView: ApiVideoView) {
+    fun buildUpstream(apiVideoView: ApiVideoView) {
         val audioConfig = AudioConfig(
             bitrate = configuration.audio.bitrate,
             sampleRate = configuration.audio.sampleRate,
@@ -119,7 +112,7 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             null
         }
 
-        serviceConnection = ApiVideoUpstream.create(
+        upstream = ApiVideoUpstream(
             context = getApplication(),
             apiVideoView = apiVideoView,
             environment = configuration.apiEndpoint.environment,
@@ -128,21 +121,16 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
             partSize = ApiClient.MIN_CHUNK_SIZE,
             initialAudioConfig = audioConfig,
             initialVideoConfig = videoConfig,
-            sessionListener = sessionListener,
-            sessionUploadPartListener = sessionUploadPartListener,
-            streamerListener = streamerListener,
-            onUpstreamSession = {
-                upstream = it
-            },
-            onServiceDisconnected = {
-                Log.i(TAG, "Upload service disconnected")
-            })
+            initialSessionListener = sessionListener,
+            initialSessionUploadPartListener = sessionUploadPartListener,
+            streamerListener = streamerListener
+        )
     }
 
-    fun retry() {
+    fun retryAllSessions() {
         try {
-            lastUpstreamSession?.let {
-                upstream.createBackupSessionFromSessionId(it.id)
+            multiFileUploaders.forEach {
+                multiFileUploaders += upstream.loadSessionFromSessionId(it.id)
             }
         } catch (e: Exception) {
             error.postValue(e.message)
@@ -199,13 +187,16 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
     fun startStream() {
         try {
             if (configuration.apiEndpoint.useApiKey) {
+                // Create a new video id each time we start streaming
                 createNewVideoId { videoId ->
-                    upstream.startStreamingForVideoId(videoId)
+                    multiFileUploaders += upstream.startStreamingForVideoId(videoId)
                 }
             } else {
-                upstream.startStreamingForToken(configuration.apiEndpoint.uploadToken)
+                multiFileUploaders +=
+                    upstream.startStreamingForToken(configuration.apiEndpoint.uploadToken)
             }
         } catch (e: Exception) {
+            Log.e(TAG, "startStream: ", e)
             error.postValue(e.message)
         }
     }
@@ -226,8 +217,16 @@ class PreviewViewModel(application: Application) : AndroidViewModel(application)
         upstream.isMuted = !upstream.isMuted
     }
 
+    fun cancel() {
+        multiFileUploaders.forEach { it.cancel() }
+    }
+
     override fun onCleared() {
         super.onCleared()
-        ApiVideoUpstream.unbindService(getApplication(), serviceConnection)
+        upstream.release()
+    }
+
+    companion object {
+        private const val TAG = "PreviewViewModel"
     }
 }

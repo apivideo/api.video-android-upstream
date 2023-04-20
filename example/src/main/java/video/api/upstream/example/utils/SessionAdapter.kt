@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import video.api.upstream.example.R
-import video.api.upstream.models.UpstreamSession
+import video.api.upstream.models.MultiFileUploader
 
 class SessionAdapter : RecyclerView.Adapter<SessionAdapter.ViewHolder>() {
     private val progressSessions = mutableListOf<ProgressSession>()
@@ -41,20 +41,20 @@ class SessionAdapter : RecyclerView.Adapter<SessionAdapter.ViewHolder>() {
         return indexOfFirst { it.sessionId == sessionId }
     }
 
-    private fun List<ProgressSession>.indexOfPart(upstreamSession: UpstreamSession): Int {
-        return indexOfFirst { it.sessionId == upstreamSession.hashCode() }
+    private fun List<ProgressSession>.indexOfPart(multiFileUploader: MultiFileUploader): Int {
+        return indexOfFirst { it.sessionId == multiFileUploader.hashCode() }
     }
 
-    fun addSession(upstreamSession: UpstreamSession) {
+    fun addSession(multiFileUploader: MultiFileUploader) {
         synchronized(this) {
-            progressSessions.add(ProgressSession(upstreamSession))
+            progressSessions.add(ProgressSession(multiFileUploader))
             notifyItemInserted(progressSessions.size - 1)
         }
     }
 
-    fun removeSession(upstreamSession: UpstreamSession) {
+    fun removeSession(multiFileUploader: MultiFileUploader) {
         synchronized(this) {
-            val index = progressSessions.indexOfPart(upstreamSession)
+            val index = progressSessions.indexOfPart(multiFileUploader)
             if (index != RecyclerView.NO_POSITION) {
                 progressSessions.removeAt(index)
                 notifyItemRemoved(index)

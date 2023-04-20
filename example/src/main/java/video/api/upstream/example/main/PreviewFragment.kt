@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import com.google.android.material.snackbar.Snackbar
 import video.api.upstream.example.R
 import video.api.upstream.example.databinding.FragmentPreviewBinding
@@ -16,7 +16,7 @@ import video.api.upstream.example.utils.DialogHelper
 import video.api.upstream.example.utils.SessionAdapter
 
 class PreviewFragment : Fragment() {
-    private val viewModel: PreviewViewModel by viewModels()
+    private val viewModel by activityViewModels<PreviewViewModel>()
     private lateinit var binding: FragmentPreviewBinding
     private val sessionAdapter = SessionAdapter()
 
@@ -35,7 +35,7 @@ class PreviewFragment : Fragment() {
     override fun onResume() {
         super.onResume()
 
-        viewModel.buildUpStream(binding.apiVideoView)
+        viewModel.buildUpstream(binding.apiVideoView)
         binding.liveButton.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 /**
@@ -73,7 +73,10 @@ class PreviewFragment : Fragment() {
             if (it) {
                 showSnackBar(getString(R.string.upload_success))
             } else {
-                showSnackBar(getString(R.string.upload_failed), Snackbar.LENGTH_INDEFINITE) { viewModel.retry() }
+                showSnackBar(
+                    getString(R.string.upload_failed),
+                    Snackbar.LENGTH_INDEFINITE
+                ) { viewModel.retryAllSessions() }
             }
         }
 
@@ -100,7 +103,11 @@ class PreviewFragment : Fragment() {
         DialogHelper.showAlertDialog(requireContext(), title, message)
     }
 
-    private fun showSnackBar(message: String, length: Int = Snackbar.LENGTH_SHORT, retryAction: (() -> Unit)? = null) {
+    private fun showSnackBar(
+        message: String,
+        length: Int = Snackbar.LENGTH_SHORT,
+        retryAction: (() -> Unit)? = null
+    ) {
         Snackbar.make(binding.apiVideoView, message, length).apply {
             retryAction?.let { action ->
                 setAction(R.string.retry) {

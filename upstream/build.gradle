@@ -13,6 +13,8 @@ android {
         targetSdk 33
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArgument("environmentVariables", "INTEGRATION_TESTS_API_KEY=${System.getenv("INTEGRATION_TESTS_API_KEY")}")
+
         consumerProguardFiles "consumer-rules.pro"
     }
 
@@ -57,9 +59,11 @@ dependencies {
 
     implementation 'androidx.core:core-ktx:1.9.0'
     api 'io.github.thibaultbee:streampack:2.5.2'
-    api "video.api:android-video-uploader:1.2.0"
+    api "video.api:android-video-uploader:1.2.1"
+    implementation 'androidx.work:work-runtime-ktx:2.8.1'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'video.api:android-api-client:1.3.1'
 }

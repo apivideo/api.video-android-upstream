@@ -20,7 +20,6 @@
             </intent-filter>
         </activity>
         <activity android:name=".preferences.PreferencesActivity" />
-        <service android:name="video.api.uploader.api.services.UploadService" />
     </application>
 
 </manifest>
