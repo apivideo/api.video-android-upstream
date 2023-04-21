@@ -194,7 +194,7 @@ private constructor(
      * Cancel the current uploads of this session.
      */
     fun cancel() {
-        workManager.cancelProgressiveUploadSession(progressiveSession)
+        workManager.cancelAllWorkByTag(sessionTag)
     }
 
     /**
