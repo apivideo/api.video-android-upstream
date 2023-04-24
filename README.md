@@ -37,7 +37,7 @@ On build.gradle add the following code in dependencies:
 
 ```groovy
 dependencies {
-    implementation 'video.api:android-upstream:1.0.0'
+    implementation 'video.api:android-upstream:1.1.0'
 }
 ```
 

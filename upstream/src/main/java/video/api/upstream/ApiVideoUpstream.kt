@@ -430,6 +430,6 @@ constructor(
     companion object {
         private const val TAG = "ApiVideoUpstream"
         private const val SDK_NAME = "upstream"
-        private const val SDK_VERSION = "1.0.0"
+        private const val SDK_VERSION = "1.1.0"
     }
 }
