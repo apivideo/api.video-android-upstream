@@ -166,4 +166,4 @@ We are using external library
 ## FAQ
 
 If you have any questions, ask us in the [community](https://community.api.video) or
-use [issues](https://github.com/apivideo/api.video-android-upstream/issues).
+use [issues](https://github.com/apivideo/api.video-android-upstream/issues). 
